@@ -1,6 +1,6 @@
-H2SL (Human to Structured Language) provides a framework for 
-realtime natural langugage symbol grounding in the context of 
-understanding robot instructions.   
+H2SL (Human to Structured Language) provides a framework for
+realtime natural langugage symbol grounding in the context of
+understanding robot instructions.
 
 Copyright (C) 2014 by the Massachusetts Institute of Technology
 
@@ -37,92 +37,188 @@ Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 OVERVIEW
 
 H2SL provides a set of base classes for developing a natural language
-symbol grounding inferface.  Example symbols, features, and data is 
+symbol grounding inferface.  Example symbols, features, and data is
 provided, but is not intended to serve as a drop-in natural language
 interface for robotic system.  To adapt to new applications, one can
-replace the symbols, features, and examples with those that are 
+replace the symbols, features, and examples with those that are
 relevant to your system and domain.  The probablistic graphical models
-included in this project consist of the Distributed Correspondence 
-Graph (DCG), Hierarhical Distributed Correspondence Graph (HDCG), 
-Adaptive Distributed Correspondence Graph (ADCG), and Hierarhical 
+included in this project consist of the Distributed Correspondence
+Graph (DCG), Hierarhical Distributed Correspondence Graph (HDCG),
+Adaptive Distributed Correspondence Graph (ADCG), and Hierarhical
 Adaptive Distributed Correspondence Graph (HADCG). For more details
 about the mathematical basis of each model, please refer to the
 following papers and articles:
 
-T.M Howard, S. Tellex, and N. Roy. A natural language planner 
-interface for mobile manipulators. In Proceedings of the IEEE 
-International Conference on Robotics and Automation, pages 6652–6659. 
+T.M Howard, S. Tellex, and N. Roy. A natural language planner
+interface for mobile manipulators. In Proceedings of the IEEE
+International Conference on Robotics and Automation, pages 6652–6659.
 IEEE, May 2014.
 
-O. Propp, I. Chung, M.R. Walter, and T.M. Howard.  On the performance 
-of hierarchical distributed correspondence graphs for efficient 
-symbol grounding of robot instructions. In Proceedings of the 2015 
-IEEE/RSJ International Conference on Intelligent Robots and Systems, 
+O. Propp, I. Chung, M.R. Walter, and T.M. Howard.  On the performance
+of hierarchical distributed correspondence graphs for efficient
+symbol grounding of robot instructions. In Proceedings of the 2015
+IEEE/RSJ International Conference on Intelligent Robots and Systems,
 October 2015.
 
-R. Paul, J. Arkin, N. Roy, and T.M. Howard. Effcient grounding of 
-abstract spatial concepts for natural language interaction with robot 
-manipulators. In Proceedings of the 2016 Robotics: Science and Systems 
+R. Paul, J. Arkin, N. Roy, and T.M. Howard. Effcient grounding of
+abstract spatial concepts for natural language interaction with robot
+manipulators. In Proceedings of the 2016 Robotics: Science and Systems
 Conference, June 2016.
 
-Examples of applications of this framework to various problems in 
-natural language symbol grounding of robot instructions include 
+Examples of applications of this framework to various problems in
+natural language symbol grounding of robot instructions include
 inferring LTL from language, assistive robotics, inferring maps and
-behaviors, expressing homotopy constraints and multi-modal interactions 
-with human-robot teams.  For more details of these applications, 
+behaviors, expressing homotopy constraints and multi-modal interactions
+with human-robot teams.  For more details of these applications,
 please refer to the following papers and articles:
 
-F. Duvallet, M.R. Walter, T.M. Howard, S. Hemachandra, J. Oh, S. Teller, 
-N. Roy, and A. Stentz. A probabilistic framework for inferring maps 
-and behaviors from natural language. In Proceedings of the 14th 
+F. Duvallet, M.R. Walter, T.M. Howard, S. Hemachandra, J. Oh, S. Teller,
+N. Roy, and A. Stentz. A probabilistic framework for inferring maps
+and behaviors from natural language. In Proceedings of the 14th
 International Symposium on Experimental Robotics, July 2014.
 
-S. Hemachandra, F. Duvallet, T.M. Howard, N. Roy, A. Stentz, and 
-M.R. Walter. Learning models for following natural language directions 
-in unknown environments. In Proceedings of the IEEE International 
+S. Hemachandra, F. Duvallet, T.M. Howard, N. Roy, A. Stentz, and
+M.R. Walter. Learning models for following natural language directions
+in unknown environments. In Proceedings of the IEEE International
 Conference on Robotics and Automation. IEEE, May 2015.
 
-D. Yi, T.M. Howard, K. Seppi, and M. Goodrich. Expressing homotopic 
-requirements for mobile robot navigation through natural language 
-instructions. In Proceedings of the 2016 IEEE/RSJ International 
+D. Yi, T.M. Howard, K. Seppi, and M. Goodrich. Expressing homotopic
+requirements for mobile robot navigation through natural language
+instructions. In Proceedings of the 2016 IEEE/RSJ International
 Conference on Intelligent Robots and Systems, October 2016.
 
-J. Oh, T.M. Howard, M. Walter, D. Barber, M. Zhu, S. Park, A. Suppe, 
-L. Navarro-Serment, F. Duvallet, A. Boularias, O. Romero, J. Vinokrov, 
-T. Keegan, R. Dean, C. Lennon, B. Bodt, M. Childers, J. Shi, K. Daniilidis, 
-N. Roy, C. Lebiere, M. Hebert, and A. Stentz. Integrated intelligence for 
-human-robot teams. In Proceedings of the 2016 International Symposium on 
+J. Oh, T.M. Howard, M. Walter, D. Barber, M. Zhu, S. Park, A. Suppe,
+L. Navarro-Serment, F. Duvallet, A. Boularias, O. Romero, J. Vinokrov,
+T. Keegan, R. Dean, C. Lennon, B. Bodt, M. Childers, J. Shi, K. Daniilidis,
+N. Roy, C. Lebiere, M. Hebert, and A. Stentz. Integrated intelligence for
+human-robot teams. In Proceedings of the 2016 International Symposium on
 Experimental Robotics, October 2016.
 
-A. Boteanu, J. Arkin, T.M. Howard, and H. Kress-Gazit. A model for 
+A. Boteanu, J. Arkin, T.M. Howard, and H. Kress-Gazit. A model for
 verifable grounding and execution of complex language instructions. In
-Proceedings of the 2016 IEEE/RSJ International Conference on Intelligent 
+Proceedings of the 2016 IEEE/RSJ International Conference on Intelligent
 Robots and Systems, October 2016.
 
-A. Broad, J. Arkin, N. Ratliff, T. M. Howard, and B. Argall. Real-time 
-natural language corrections for assistive robotic manipulators. 
+A. Broad, J. Arkin, N. Ratliff, T. M. Howard, and B. Argall. Real-time
+natural language corrections for assistive robotic manipulators.
 International Journal of Robotics Research, 36(5-7):684–698, May 2017.
 
-J. Arkin, M. Walter, A. Boteanu, M. Napoli, H. Biggie, H. Kress-Gazit, 
-and T.M. Howard. Contextual awareness: Understanding monologic natural 
+J. Arkin, M. Walter, A. Boteanu, M. Napoli, H. Biggie, H. Kress-Gazit,
+and T.M. Howard. Contextual awareness: Understanding monologic natural
 language instructions for autonomous robots.  In Proceedings of the IEEE
-International Symposium on Robot and Human Interactive Communication, 
+International Symposium on Robot and Human Interactive Communication,
 August 2017.
 
-TUTORIAL (DCG)
+TUTORIAL
 
-To train the model from a corpus of labeled examples, run ...
+To run the DCG model
 
-h2sl-llm-train (examples files) --feature_set=(feature_set.xml) --output=(llm.xml)
+To generate a symbol dictionary for the example corpus, run the following command from the build directory:
 
-To run the Distributed Correspondence Graph (DCG) demo, run ...
+./bin/h2sl-generate-symbol-dictionary ../data/training/example_corpus/example_00*.xml --output ../data/training/example_corpus/symbol_dictionary_groundings.xml
 
-h2sl-dcg-demo --world=(world.xml) --llm=(llm.xml) --grammar=(grammar.xml) --command=(command string) -output=(output.xml)
+To generate a feature set for the example corpus using the just generated symbol dictionary, run the following command from the build directory:
 
-To run the Distributed Correspondence Graph (DCG) test, run ...
+./bin/h2sl-generate-feature-set-groundings ../data/training/example_corpus/example_00*.xml --sd ../data/training/example_corpus/symbol_dictionary_groundings.xml --output ../data/training/example_corpus/feature_set_dcg.xml
 
-h2sl-dcg-test (example files) --llm=(llm.xml) --grammar=(grammar.xml)
+To train a model using the just generated symbol dictionary and feature set, run the following command from the build directory:
 
-To run the Graphical User Interface (GUI), run ...
+./bin/h2sl-llm-train-groundings ../data/training/example_corpus/example_00*.xml --feature_set ../data/training/example_corpus/feature_set_dcg.xml --sd ../data/training/example_corpus/symbol_dictionary_groundings.xml --output ../data/training/example_corpus/llm_dcg.xml
 
-h2sl-gui-demo --world=(world.xml) --llm=(llm.xml) --grammar=(grammar.xml)
+To run the DCG demo program run the following command from the build directory.
+
+./bin/h2sl-dcg-demo --grammar ../data/grammar/grammar.xml --command "walk to the furthest chair" --sd ../data/training/example_corpus/symbol_dictionary_groundings.xml --world ../data/training/example_corpus/example_0034.xml --llm ../data/training/example_corpus/llm_dcg.xml --output /tmp/example_dcg.xml --debug 1
+
+To run the DCG test, run the following command from the build directory:
+
+./bin/h2sl-dcg-test ../data/training/example_corpus/example_00*.xml --llm ../data/training/example_corpus/llm_dcg.xml --grammar ../data/grammar/grammar.xml --sd ../data/training/example_corpus/symbol_dictionary_groundings.xml
+
+To run the Graphical User Interface (GUI), run the following command from the build directory:
+
+./bin/h2sl-gui-demo --world ../data/training/example_corpus/example_0001.xml --llm ../data/training/example_corpus/llm_dcg.xml --symbol_dictionary_groundings ../data/training/example_corpus/symbol_dictionary_groundings.xml --grammar ../data/grammar/grammar.xml
+
+
+
+To run the HDCG model
+
+First, generate the rule examples by running the following command from the build directory.  This generates examples with the "rule_" prefix and rule-based symbols.
+
+./bin/h2sl-generate-rule-examples ../data/training/example_corpus/example_00*.xml
+
+Second, generate the symbol dictionary for the groundings by running the following command from the build directory.  This describes the space of symbols in the grounding-based model.
+
+./bin/h2sl-generate-symbol-dictionary ../data/training/example_corpus/example_00*.xml --output ../data/training/example_corpus/symbol_dictionary_groundings.xml
+
+Third, generate the symbol dictionary for the rules by running the following command from the build directory.  This describes the space of symbols in the rule-based model.
+
+./bin/h2sl-generate-symbol-dictionary ../data/training/example_corpus/rule_example_00*.xml --output ../data/training/example_corpus/symbol_dictionary_rules.xml
+
+Next, generate the feature set from the examples and symbol dictionaries by running the following command from the build directory.  This will create the feature set for the log-linear model you will train in the following step.
+
+./bin/h2sl-generate-feature-set-groundings-and-rules ../data/training/example_corpus/example_00*.xml ../data/training/example_corpus/rule_example_00*.xml --symbol_dictionary_groundings ../data/training/example_corpus/symbol_dictionary_groundings.xml --symbol_dictionary_rules ../data/training/example_corpus/symbol_dictionary_rules.xml --output ../data/training/example_corpus/feature_set_hdcg.xml
+
+Now train the combined model by running the following command from the build directory.  This will produce a llm.xml file that contains the trained log-linear models.
+
+./bin/h2sl-llm-train-groundings-and-rules ../data/training/example_corpus/example_00*.xml ../data/training/example_corpus/rule_example_00*.xml --feature_set ../data/training/example_corpus/feature_set_hdcg.xml --symbol_dictionary_groundings ../data/training/example_corpus/symbol_dictionary_groundings.xml --symbol_dictionary_rules ../data/training/example_corpus/symbol_dictionary_rules.xml --output ../data/training/example_corpus/llm_hdcg.xml
+
+Finally, to run the HDCG demo program run the following command from the build directory.
+
+./bin/h2sl-hdcg-demo --grammar ../data/grammar/grammar.xml --command "walk to the box" --symbol_dictionary ../data/training/example_corpus/symbol_dictionary_groundings.xml --world ../data/training/example_corpus/example_0001.xml --llm ../data/training/example_corpus/llm_hdcg.xml --output /tmp/example_hdcg.xml --debug 1
+
+To run the HDCG test, run the following command from the build directory
+
+./bin/h2sl-hdcg-test ../data/training/example_corpus/example_00*.xml --grammar ../data/grammar/grammar.xml --llm ../data/training/example_corpus/llm_hdcg.xml --symbol_dictionary_groundings ../data/training/example_corpus/symbol_dictionary_groundings.xml
+
+
+
+To run the ADCG model
+
+First, generate the symbol dictionary for the groundings by running the following command from the build directory.  This describes the space of symbols in the grounding-based model.
+
+./bin/h2sl-generate-symbol-dictionary ../data/training/example_corpus/example_00*.xml --output ../data/training/example_corpus/symbol_dictionary_groundings.xml
+
+Next, generate the feature set from the examples and symbol dictionaries by running the following command from the build directory.  This will create the feature set for the log-linear model you will train in the following step.
+
+./bin/h2sl-generate-feature-set-groundings ../data/training/example_corpus/example_00*.xml --sd ../data/training/example_corpus/symbol_dictionary_groundings.xml --output ../data/training/example_corpus/feature_set_adcg.xml
+
+Now train the model by running the following command from the build directory.  This will produce a llm_adcg.xml file that contains the trained log-linear models.
+
+./bin/h2sl-llm-train-groundings ../data/training/example_corpus/example_00*.xml --feature_set ../data/training/example_corpus/feature_set_adcg.xml --sd ../data/training/example_corpus/symbol_dictionary_groundings.xml --output ../data/training/example_corpus/llm_adcg.xml
+
+Finally, to run the ADCG demo program run the following command from the build directory.
+
+./bin/h2sl-adcg-demo --grammar ../data/grammar/grammar.xml --command "walk to the furthest chair" --sd ../data/training/example_corpus/symbol_dictionary_groundings.xml --world ../data/training/example_corpus/example_0034.xml --llm ../data/training/example_corpus/llm_adcg.xml --output /tmp/example_adcg.xml --debug 1
+
+
+
+To run the HADCG model
+
+First, generate the rule examples by running the following command from the build directory.  This generates examples with the "rule_" prefix and rule-based symbols.
+
+./bin/h2sl-generate-rule-examples ../data/training/example_corpus/example_00*.xml
+
+Second, generate the symbol dictionary for the groundings by running the following command from the build directory.  This describes the space of symbols in the grounding-based model.
+
+./bin/h2sl-generate-symbol-dictionary ../data/training/example_corpus/example_00*.xml --output ../data/training/example_corpus/symbol_dictionary_groundings.xml
+
+Third, generate the symbol dictionary for the rules by running the following command from the build directory.  This describes the space of symbols in the rule-based model.
+
+./bin/h2sl-generate-symbol-dictionary ../data/training/example_corpus/rule_example_00*.xml --output ../data/training/example_corpus/symbol_dictionary_rules.xml
+
+Next, generate the feature set from the examples and symbol dictionaries by running the following command from the build directory.  This will create the feature set for the log-linear model you will train in the following step.
+
+./bin/h2sl-generate-feature-set-groundings-and-rules ../data/training/example_corpus/example_00*.xml ../data/training/example_corpus/rule_example_00*.xml --symbol_dictionary_groundings ../data/training/example_corpus/symbol_dictionary_groundings.xml --symbol_dictionary_rules ../data/training/example_corpus/symbol_dictionary_rules.xml --output ../data/training/example_corpus/feature_set_hadcg.xml
+
+Now train the combined model by running the following command from the build directory.  This will produce a llm.xml file that contains the trained log-linear models.
+
+./bin/h2sl-llm-train-groundings-and-rules ../data/training/example_corpus/example_00*.xml ../data/training/example_corpus/rule_example_00*.xml --feature_set ../data/training/example_corpus/feature_set_hadcg.xml --symbol_dictionary_groundings ../data/training/example_corpus/symbol_dictionary_groundings.xml --symbol_dictionary_rules ../data/training/example_corpus/symbol_dictionary_rules.xml --output ../data/training/example_corpus/llm_hadcg.xml
+
+Finally, to run the HADCG demo program run the following command from the build directory.
+
+./bin/h2sl-hadcg-demo --grammar ../data/grammar/grammar.xml --command "walk to the furthest chair" --symbol_dictionary ../data/training/example_corpus/symbol_dictionary_groundings.xml --world ../data/training/example_corpus/example_0034.xml --llm ../data/training/example_corpus/llm_hadcg.xml --output /tmp/example_hadcg.xml --debug 1
+
+To run the HADCG test, run the following command from the build directory
+
+./bin/h2sl-hadcg-test ../data/training/example_corpus/example_00*.xml --grammar ../data/grammar/grammar.xml --llm ../data/training/example_corpus/llm_hadcg.xml --symbol_dictionary_groundings ../data/training/example_corpus/symbol_dictionary_groundings.xml
+
+

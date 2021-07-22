@@ -68,7 +68,8 @@ scrape_phrases( const Phrase* phrase,
   // add words  
   cout << "phrase->words().size():" << phrase->words().size() << endl;
   for( unsigned int i = 0; i < phrase->words().size(); i++ ){
-    grammar_non_terminal.elements().push_back( pos_t_to_std_string( phrase->words()[ i ].pos() ) + "[" + phrase->words()[ i ].text() + "]" );
+//    grammar_non_terminal.elements().push_back( pos_t_to_std_string( phrase->words()[ i ].pos() ) + "[" + phrase->words()[ i ].text() + "]" );
+    grammar_non_terminal.elements().push_back( pos_t_to_std_string( phrase->words()[ i ].pos() ) );
   }
   for( unsigned int i = 0; i < phrase->children().size(); i++ ){
     grammar_non_terminal.elements().push_back( Phrase::phrase_type_t_to_std_string( phrase->children()[ i ]->type() ) );
@@ -104,18 +105,20 @@ main( int argc,
 
   if( grammar != NULL ){
     for( unsigned int i = 0; i < args.inputs_num; i++ ){
-      Phrase * phrase = new Phrase();
-      if( phrase != NULL ){
-        phrase->from_xml( args.inputs[ i ] ); 
-
-        scrape_phrases( phrase, grammar->terminals(), grammar->non_terminals() ); 
-
-        delete phrase;
-        phrase = NULL;
+      World * world = new World( args.inputs[ i ] );
+      if( world != NULL ){
+        Phrase * phrase = new Phrase( args.inputs[ i ], world );
+        if( phrase != NULL ){
+          Grammar::scrape_phrases( phrase, grammar->terminals(), grammar->non_terminals() );
+          delete phrase;
+          phrase = NULL;
+        }
+        delete world;
+        world = NULL;
       } else {
         return 1;
       }
-    } 
+    }
 
     cout << "grammar terminals[" << grammar->terminals().size() << "{" << endl;
     for( unsigned int i = 0; i < grammar->terminals().size(); i++ ){

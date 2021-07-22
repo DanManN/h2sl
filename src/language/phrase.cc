@@ -35,8 +35,8 @@
 #include <fstream>
 #include <sstream>
 
-#include <h2sl/phrase.h>
-#include <h2sl/grounding_set.h>
+#include "h2sl/common.h"
+#include "h2sl/phrase.h"
 
 using namespace std;
 using namespace h2sl;
@@ -46,13 +46,25 @@ Phrase( const phrase_type_t& type,
         const string& text,
         const vector< Word >& words,
         const vector< Phrase* >& children,
-        Grounding* grounding ) : Grounding(),
-                                              _type( type ),
-                                              _text( text ),
-                                              _words( words ),
-                                              _children( children ),
-                                              _grounding( grounding ){
+        Grounding_Set* groundingSet,
+        const map< string, string >& properties ) : _type( type ),
+                                                    _text( text ),
+                                                    _words( words ),
+                                                    _children( children ),
+                                                    _grounding_set( groundingSet ),
+                                                    _properties( properties ){
 
+}
+
+Phrase::
+Phrase( const string& filename,
+        World* world ) : _type(),
+                          _text(),
+                          _words(),
+                          _children(),
+                          _grounding_set(),
+                          _properties() {
+  from_xml( filename, world ); 
 }
 
 Phrase::
@@ -61,17 +73,17 @@ Phrase::
 }
 
 Phrase::
-Phrase( const Phrase& other ) : Grounding( other ),
-                                _type( other._type ),
+Phrase( const Phrase& other ) : _type( other._type ),
                                 _text( other._text ),
                                 _words( other._words ),
                                 _children(),
-                                _grounding( NULL ){
+                                _grounding_set( NULL ),
+                                _properties( other._properties ){
   for( unsigned int i = 0; i < other._children.size(); i++ ){
     _children.push_back( other._children[ i ]->dup() );
   }
-  if( other._grounding != NULL ){
-    _grounding = other._grounding->dup();
+  if( other._grounding_set != NULL ){
+    _grounding_set = other._grounding_set->dup();
   }
 }
 
@@ -81,6 +93,7 @@ operator=( const Phrase& other ) {
   _type = other._type;
   _text = other._text;
   _words = other._words;
+  _properties = other._properties;
   for( unsigned int i = 0; i < _children.size(); i++ ){
     if( _children[ i ] != NULL ){
       delete _children[ i ];
@@ -90,11 +103,12 @@ operator=( const Phrase& other ) {
   for( unsigned int i = 0; i < other._children.size(); i++ ){
     _children.push_back( other._children[ i ]->dup() );
   }
-  if( other._grounding != NULL ){
-    _grounding = other._grounding->dup();
+  if( other._grounding_set != NULL ){
+    _grounding_set = other._grounding_set->dup();
   } else {
-    _grounding = NULL;  
+    _grounding_set = NULL;  
   }
+  _properties = other._properties;
   return (*this);
 }
 
@@ -109,6 +123,8 @@ operator==( const Phrase& other )const{
     return false;
   } else if ( _children.size() != other._children.size() ){
     return false;
+ // } else if ( _search_space_properties.size() != other._search_space_properties.size() ){
+ //   return false;
   } else {
     for( unsigned int i = 0; i < _words.size(); i++ ){
       if( _words[ i ] != other._words[ i ] ){
@@ -148,6 +164,93 @@ dup( const bool& empty )const{
 
 void
 Phrase::
+clear_grounding_sets( void ){
+  if( _grounding_set != NULL ){
+    delete _grounding_set;
+    _grounding_set = NULL;
+  }
+  
+  for( vector< Phrase* >::const_iterator it_child = _children.begin(); it_child != _children.end(); it_child++ ){
+    (*it_child)->clear_grounding_sets();
+  }
+  return;
+}
+
+void
+Phrase::
+scrape_groundings( const World * world,
+                    map< string, vector< string > >& stringTypes,
+                    map< string, vector< int > >& intTypes )const{
+
+  _grounding_set->scrape_grounding( world, stringTypes, intTypes );
+
+  for( vector< Phrase* >::const_iterator it_child = _children.begin(); it_child != _children.end(); it_child++ ){
+    (*it_child)->scrape_groundings( world, stringTypes, intTypes );
+  }
+
+  return;
+}
+
+void
+Phrase::
+scrape_groundings( const World * world,
+                    vector< string >& classNames,
+                    map< string, vector< string > >& stringTypes,
+                    map< string, vector< int > >& intTypes )const{
+
+  _grounding_set->scrape_grounding( world, classNames, stringTypes, intTypes );
+
+  for( vector< Phrase* >::const_iterator it_child = _children.begin(); it_child != _children.end(); it_child++ ){
+    (*it_child)->scrape_groundings( world, classNames, stringTypes, intTypes );
+  }
+
+  return;
+}
+
+void
+Phrase::
+scrape_groundings( const World * world,
+                    map< string, vector< string > >& classNames,
+                    map< string, vector< string > >& stringTypes,
+                    map< string, vector< int > >& intTypes )const{
+
+  map< string, vector< string > >::iterator it_class_names = classNames.find( phrase_type_t_to_std_string( type() ) );
+  assert( it_class_names != classNames.end() );
+
+  _grounding_set->scrape_grounding( world, it_class_names->second, stringTypes, intTypes );
+
+  for( vector< Phrase* >::const_iterator it_child = _children.begin(); it_child != _children.end(); it_child++ ){
+    (*it_child)->scrape_groundings( world, classNames, stringTypes, intTypes );
+  }
+
+  return;
+}
+
+bool
+Phrase::
+contains_symbol_in_symbol_dictionary( const Symbol_Dictionary& symbolDictionary )const{
+  bool contains_symbol = _grounding_set->contains_symbol_in_symbol_dictionary( symbolDictionary );
+  for( vector< Phrase* >::const_iterator it_child = _children.begin(); it_child != _children.end(); it_child++ ){
+    contains_symbol = contains_symbol || (*it_child)->contains_symbol_in_symbol_dictionary( symbolDictionary );
+  }
+  return contains_symbol;
+}
+
+void
+Phrase::
+to_file( const string& filename )const{
+  if( boost::algorithm::ends_with( filename, "xml" ) ){
+    to_xml( filename );
+  } else if( boost::algorithm::ends_with( filename, "tex" ) ) {
+    to_tikz( filename );
+  } else {
+    cout << "could not write to \"" << filename << "\"" << endl;
+  }
+  return;
+}
+
+void
+Phrase::
 to_xml( const string& filename )const{
   xmlDocPtr doc = xmlNewDoc( ( xmlChar* )( "1.0" ) );
   xmlNodePtr root = xmlNewDocNode( doc, NULL, ( xmlChar* )( "root" ), NULL );
@@ -163,11 +266,9 @@ Phrase::
 to_xml( xmlDocPtr doc,
         xmlNodePtr root )const{
   xmlNodePtr node = xmlNewDocNode( doc, NULL, ( const xmlChar* )( phrase_type_t_to_std_string( _type ).c_str() ), NULL );
-  xmlNodePtr grounding_node = xmlNewDocNode( doc, NULL, ( const xmlChar* )( "grounding" ), NULL );
-  if( _grounding != NULL ){
-    _grounding->to_xml( doc, grounding_node );    
+  if( _grounding_set != NULL ){
+    _grounding_set->to_xml( doc, node );    
   } 
-  xmlAddChild( node, grounding_node );
   for( unsigned int i = 0; i < _words.size(); i++ ){
     _words[ i ].to_xml( doc, node );
   }   
@@ -176,13 +277,17 @@ to_xml( xmlDocPtr doc,
       _children[ i ]->to_xml( doc, node );
     }
   }
+  for( map< string, string >::const_iterator it = _properties.begin(); it != _properties.end(); it++ ){
+    xmlNewProp( node, ( const xmlChar* )( it->first.c_str() ), ( const xmlChar* )( it->second.c_str() ) );
+  }
   xmlAddChild( root, node );
   return;
 }
 
 void 
 Phrase::
-from_xml( const std::string& filename ){
+from_xml( const std::string& filename,
+          World* world ){
   xmlDoc * doc = NULL;
   xmlNodePtr root = NULL;
   doc = xmlReadFile( filename.c_str(), NULL, 0 );
@@ -194,7 +299,7 @@ from_xml( const std::string& filename ){
         if( l1->type == XML_ELEMENT_NODE ){
           for( unsigned int i = 0; i < NUM_PHRASE_TYPES; i++ ){
             if( xmlStrcmp( l1->name, ( const xmlChar* )( phrase_type_t_to_std_string( ( phrase_type_t )( i ) ).c_str() ) ) == 0 ){
-              from_xml( l1 );
+              from_xml( l1, world );
             }
           }
         }
@@ -207,7 +312,8 @@ from_xml( const std::string& filename ){
 
 void 
 Phrase::
-from_xml( xmlNodePtr root ){
+from_xml( xmlNodePtr root,
+          World* world ){
   for( unsigned int i = 0; i < _children.size(); i++ ){
     if( _children[ i ] != NULL ){
       delete _children[ i ];
@@ -224,12 +330,16 @@ from_xml( xmlNodePtr root ){
     xmlNodePtr l1 = NULL;
     for( l1 = root->children; l1; l1 = l1->next ){
       if( l1->type == XML_ELEMENT_NODE ){
-        if( xmlStrcmp( l1->name, ( const xmlChar* )( "grounding" ) ) == 0 ){
+        if( xmlStrcmp( l1->name, ( const xmlChar* )( "grounding_set" ) ) == 0 ){
+          _grounding_set = new Grounding_Set( l1, world );
+        } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "grounding" ) ) == 0 ){
           xmlNodePtr l2 = NULL;
           for( l2 = l1->children; l2; l2 = l2->next ){
             if( l2->type == XML_ELEMENT_NODE ){
               if( xmlStrcmp( l2->name, ( const xmlChar* )( "grounding_set" ) ) == 0 ){
-                _grounding = new Grounding_Set( l2 );
+                _grounding_set = new Grounding_Set( l2, world );
+              } else{
+                cout << "could not load" << l2->name << endl;
               }
             }
           }
@@ -243,7 +353,7 @@ from_xml( xmlNodePtr root ){
         for( unsigned int i = 0; i < NUM_PHRASE_TYPES; i++ ){
           if( xmlStrcmp( l1->name, ( const xmlChar* )( phrase_type_t_to_std_string( ( phrase_type_t )( i ) ).c_str() ) ) == 0 ){
             _children.push_back( new Phrase() );
-            _children.back()->from_xml( l1 );
+            _children.back()->from_xml( l1, world );
           }
         }
       }
@@ -296,6 +406,243 @@ min_word_order( void )const{
   return min_order;
 }
 
+/**
+ * Function to return the number of phrases in the 
+ * tree starting from the current node in the tree and 
+ * aggregating over children. 
+ */
+unsigned int
+Phrase::
+num_phrases( void )const{
+  return num_phrases( this );
+}
+
+unsigned int
+Phrase::
+num_phrases( const Phrase* phrase )const{
+  if( phrase != NULL ){
+    unsigned int tmp = 1;
+    for( unsigned int i = 0; i < phrase->children().size(); i++ ){
+      if( phrase->children()[ i ] != NULL ){
+        tmp += num_phrases( phrase->children()[ i ] );
+      }
+    }
+    return tmp;
+  } else {
+    return 0;
+  }
+}
+
+
+/*
+ * Function: Aggregate property.
+ */
+
+double
+Phrase::
+aggregate_property_phrases( const std::string& property )const{
+  return aggregate_property_phrases( this, property );
+}
+
+
+double
+Phrase::
+aggregate_property_phrases( const Phrase* phrase, const std::string& property )const{
+  if( phrase != NULL ){
+    double tmp = 0.0;
+    std::map< std::string, std::string >::const_iterator it;
+    it = phrase->properties().find( property );
+
+    if( it != phrase->properties().end() ){
+      tmp += std::stod( it->second );
+    } else {
+      cout << "in phrase: " << *phrase << endl;
+      cout << "could not find property: " << property << endl;
+       exit(0);
+    }
+
+    for( unsigned int i = 0; i < phrase->children().size(); i++){
+      if( phrase->children()[ i ] != NULL ) {
+        tmp += aggregate_property_phrases( phrase->children()[ i ], property );
+      }
+    }
+    return tmp;
+  } else {
+    return 0.0;
+  }
+}
+
+double
+Phrase::
+statistic_aggregate_property_phrases( const std::string& property, 
+                                      const std::string& statistic )const {
+  return statistic_aggregate_property_phrases( this, property, statistic );
+}
+
+double
+Phrase::
+statistic_aggregate_property_phrases( const Phrase* phrase, 
+                                      const std::string& property, 
+                                      const std::string& statistic )const {
+
+  if( statistic.compare( std::string( "per-phrase-avg" ) ) == 0 ) {
+    unsigned int num_phrases = phrase->num_phrases();
+    if ( num_phrases ){
+      return ( aggregate_property_phrases( phrase, property) / (double) (num_phrases) );
+    } else {
+      return 0.0;
+    }
+  } else {
+    cout << "statistic not known." << endl;
+    exit( 0 );
+  }
+}
+
+/**
+ * Function to return the number of words in the phrase and child phrases
+ */
+unsigned int
+Phrase::
+num_words( void )const{
+  return num_words( this );
+}
+
+unsigned int
+Phrase::
+num_words( const Phrase* phrase )const{
+
+  unsigned int tmp = phrase->words().size();
+  for( unsigned int i = 0; i < phrase->children().size(); i++ ){
+    tmp += num_words( phrase->children()[ i ] );
+  }
+  return tmp;
+}
+
+/**
+ * Function to output the phrase as a tikz figure
+ */
+void
+Phrase::
+to_tikz( const string& filename,
+          const string& caption,
+          const string& label )const{
+  ofstream outfile;
+  outfile.open( filename );
+
+  outfile << "\\begin{figure}[!htb]" << endl;
+  outfile << "\\begin{center}" << endl;
+  outfile << "\\begin{tikzpicture}[textnode/.style={anchor=mid,font=\\tiny},nodeknown/.style={circle,draw=black!80,fill=black!10,minimum size=6mm,font=\\tiny,top color=white,bottom color=black!20},nodeunknown/.style={circle,draw=black!80,fill=white,minimum size=6mm,font=\\tiny},factor/.style={rectangle,draw=black!80,fill=black!80,minimum size=2mm,font=\\tiny,text=white}]" << endl;
+
+  unsigned int offset = 0;
+
+  outfile << to_tikz_edges_gm( this, offset );
+ 
+  offset = 0;
+ 
+  outfile << to_tikz_nodes_gm( this, offset );
+
+  outfile << "\\end{tikzpicture}" << endl;
+  outfile << "\\end{center}" << endl;
+  outfile << "\\caption{" << caption << "}" << endl;
+  outfile << "\\label{" << label << "}" << endl;
+  outfile << "\\end{figure}" << endl;
+
+  outfile.close();
+
+  return;
+}
+
+string
+Phrase::
+to_tikz_nodes_gm( const h2sl::Phrase* phrase,
+                unsigned int& offset )const{
+  stringstream tmp;
+  
+  for( unsigned int i = 0; i < phrase->words().size(); i++ ){
+    tmp << "\\node[textnode] (l" << offset << ") at (" << offset * 1.25 << "," << -0.25 * ( double )( i ) << ") {\\footnotesize{\\textit{" << phrase->words()[ i ].text() << "}}};" << endl;
+  }
+  pair< double, double > p_node_position( offset * 1.25, 0.5 );
+  tmp << "\\node[nodeknown] (p" << offset << ") at (" << p_node_position.first << "," << p_node_position.second << ") {};" << endl; 
+  tmp << "\\node[font=\\tiny] (p" << offset << "label) at (" << p_node_position.first << "," << p_node_position.second << ") {$\\lambda_{" << offset << "}$};" << endl; 
+  tmp << "%" << endl;
+  pair< double, double > c1_node_position( -0.5 + offset * 1.25, 1.0 );
+  tmp << "\\node[nodeunknown] (c" << offset << "1) at (" << c1_node_position.first << "," << c1_node_position.second << ") {};" << endl;
+  tmp << "\\node[font=\\tiny] (c" << offset << "1label) at (" << c1_node_position.first << "," << c1_node_position.second << ") {$\\phi_{" << offset << "_{1}}$};" << endl;
+  pair< double, double > c2_node_position( -0.5 + offset * 1.25, 2.0 );
+  tmp << "\\node[nodeunknown] (c" << offset << "2) at (" << c2_node_position.first << "," << c2_node_position.second << ") {};" << endl;
+  tmp << "\\node[font=\\tiny] (c" << offset << "2label) at (" << c2_node_position.first << "," << c2_node_position.second << ") {$\\phi_{" << offset << "_{2}}$};" << endl;
+  pair< double, double > cn_node_position( -0.5 + offset * 1.25, 4.0 );
+  tmp << "\\node[nodeunknown] (c" << offset << "n) at (" << cn_node_position.first << "," << cn_node_position.second << ") {};" << endl;
+  tmp << "\\node[font=\\tiny] (c" << offset << "nlabel) at (" << cn_node_position.first << "," << cn_node_position.second << ") {$\\phi_{" << offset << "_{n}}$};" << endl;
+  pair< double, double > g1_node_position( offset * 1.25, 1.5 );
+  tmp << "\\node[nodeknown] (g" << offset << "1) at (" << g1_node_position.first << "," << g1_node_position.second << ") {};" << endl;
+  tmp << "\\node[font=\\tiny] (g" << offset << "1label) at (" << g1_node_position.first << "," << g1_node_position.second << ") {$\\phi_{" << offset << "_{1}}$};" << endl;
+  pair< double, double > g2_node_position( offset * 1.25, 2.5 );
+  tmp << "\\node[nodeknown] (g" << offset << "2) at (" << g2_node_position.first << "," << g2_node_position.second << ") {};" << endl;
+  tmp << "\\node[font=\\tiny] (g" << offset << "2label) at (" << g2_node_position.first << "," << g2_node_position.second << ") {$\\phi_{" << offset << "_{2}}$};" << endl;
+  tmp << "\\node[] (g" << offset << "dots) at (" << offset * 1.25 << "," << 3.375 << ") {$\\vdots$};" << endl;
+  pair< double, double > gn_node_position( offset * 1.25, 4.5 );
+  tmp << "\\node[nodeknown] (g" << offset << "n) at (" << gn_node_position.first << "," << gn_node_position.second << ") {};" << endl;
+  tmp << "\\node[font=\\tiny] (g" << offset << "nlabel) at (" << gn_node_position.first << "," << gn_node_position.second << ") {$\\phi_{" << offset << "_{n}}$};" << endl;
+  pair< double, double > f1_node_position( offset * 1.25, 1.0 );
+  tmp << "\\node[factor] (f" << offset << "1) at (" << f1_node_position.first << "," << f1_node_position.second << ") {};" << endl;
+  pair< double, double > f2_node_position( offset * 1.25, 2.0 );
+  tmp << "\\node[factor] (f" << offset << "2) at (" << f2_node_position.first << "," << f2_node_position.second << ") {};" << endl;
+  pair< double, double > fn_node_position( offset * 1.25, 4.0 );
+  tmp << "\\node[factor] (f" << offset << "n) at (" << fn_node_position.first << "," << fn_node_position.second << ") {};" << endl;
+  tmp << "%" << endl;
+
+  offset++;
+
+  for( unsigned int i = 0; i < phrase->children().size(); i++ ){
+    tmp << to_tikz_nodes_gm( phrase->children()[ i ], offset );
+  }
+
+  return tmp.str();
+}
+
+string
+Phrase::
+to_tikz_edges_gm( const h2sl::Phrase* phrase,
+                unsigned int& offset )const{
+  stringstream tmp;
+
+  cout << "num_phrases:" << phrase->num_phrases() << endl;
+
+  tmp << "\\draw[-] (" << offset * 1.25 << ",0.5) to (" << offset * 1.25 << ",1);" << endl;
+  tmp << "\\draw[-] (" << offset * 1.25 << ",0.5) to [bend right=30] (" << offset * 1.25 << ",2);" << endl;
+  tmp << "\\draw[-] (" << offset * 1.25 << ",0.5) to [bend right=30] (" << offset * 1.25 << ",4);" << endl;
+  tmp << "\\draw[-] (" << -0.5 + offset * 1.25 << ",1) to (" << offset * 1.25 << ",1);" << endl;
+  tmp << "\\draw[-] (" << -0.5 + offset * 1.25 << ",2) to (" << offset * 1.25 << ",2);" << endl;
+  tmp << "\\draw[-] (" << -0.5 + offset * 1.25 << ",4) to (" << offset * 1.25 << ",4);" << endl;
+  tmp << "\\draw[-] (" << offset * 1.25 << ",1.5) to (" << offset * 1.25 << ",1);" << endl;
+  tmp << "\\draw[-] (" << offset * 1.25 << ",2.5) to (" << offset * 1.25 << ",2);" << endl;
+  tmp << "\\draw[-] (" << offset * 1.25 << ",4.5) to (" << offset * 1.25 << ",4);" << endl;
+
+  unsigned int child_offset = offset + 1;
+  for( unsigned int i = 0; i < phrase->children().size(); i++ ){
+    cout << "children[" << i << "] num_phrases:" << phrase->children()[ i ]->num_phrases() << endl;
+    tmp << "\\draw[-] (" << child_offset * 1.25 << ",1.5) to (" << offset * 1.25 << ",1);" << endl;
+    tmp << "\\draw[-] (" << child_offset * 1.25 << ",2.5) to (" << offset * 1.25 << ",1);" << endl;
+    tmp << "\\draw[-] (" << child_offset * 1.25 << ",4.5) to (" << offset * 1.25 << ",1);" << endl;
+    tmp << "\\draw[-] (" << child_offset * 1.25 << ",1.5) to (" << offset * 1.25 << ",2);" << endl;
+    tmp << "\\draw[-] (" << child_offset * 1.25 << ",2.5) to (" << offset * 1.25 << ",2);" << endl;
+    tmp << "\\draw[-] (" << child_offset * 1.25 << ",4.5) to (" << offset * 1.25 << ",2);" << endl;
+    tmp << "\\draw[-] (" << child_offset * 1.25 << ",1.5) to (" << offset * 1.25 << ",4);" << endl;
+    tmp << "\\draw[-] (" << child_offset * 1.25 << ",2.5) to (" << offset * 1.25 << ",4);" << endl;
+    tmp << "\\draw[-] (" << child_offset * 1.25 << ",4.5) to (" << offset * 1.25 << ",4);" << endl;
+    child_offset += phrase->children()[ i ]->num_phrases();
+  }
+
+  offset++;
+
+  for( unsigned int i = 0; i < phrase->children().size(); i++ ){
+    tmp << to_tikz_edges_gm( phrase->children()[ i ], offset );
+  }
+
+  return tmp.str();
+}
+
 string
 Phrase::
 words_to_std_string( void )const{
@@ -307,6 +654,20 @@ words_to_std_string( void )const{
     }
   }   
   return tmp.str();
+}
+
+string
+Phrase::
+all_words_to_std_string( void )const{
+  string tmp = words_to_std_string();
+  for( unsigned int i = 0; i < _children.size(); i++ ){
+    if( tmp.empty() ){
+      tmp = tmp + _children[ i ]->all_words_to_std_string();
+    } else {
+      tmp = tmp + " " + _children[ i ]->all_words_to_std_string();
+    }
+  }
+  return tmp;
 }
   
 string
@@ -382,11 +743,23 @@ namespace h2sl {
       }
     }
     out << " ";
-    if( other.grounding() != NULL ){
-      out << "grounding:{" << *other.grounding() << "}";
+    if( other.grounding_set() != NULL ){
+      out << "grounding_set:{" << *other.grounding_set() << "}";
     } else {
-      out << "grounding:{NULL}";
+      out << "grounding_set:{NULL}";
     }
+
+ //  for( std::map< std::string, std::string >::const_iterator it = other.search_space_properties().begin(); it != other.search_space_properties().end(); ++it ) {
+ //    out << "search_space_properties:{" << it->first << "," << it->second << "}";
+ //  }
+    out << " properties:{";
+    for( map< string, string >::const_iterator it = other.properties().begin(); it != other.properties().end(); it++ ){
+      out << "(" << it->first << ":" << it->second << ")";
+      if( next( it ) != other.properties().end() ){
+        out << ",";
+      }
+    }
+    out << "}";
     return out;
   }
 }

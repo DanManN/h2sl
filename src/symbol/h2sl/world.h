@@ -36,33 +36,98 @@
 
 #include <iostream>
 #include <vector>
+#include <map>
 
 #include "h2sl/object.h"
 
 namespace h2sl {
   class World {
   public:
-    World( const unsigned long long& time = 0, const std::vector< Object* >& objects = std::vector< Object* >() );
+    World( const unsigned long long& time = 0, const std::map< std::string, Object* >& objects = std::map< std::string, Object* >() );
+    World( const std::string& filename );
     virtual ~World();
     World( const World& other );
     World& operator=( const World& other );
+    bool operator==( const World& other )const;
+    bool operator!=( const World& other )const;
     virtual World* dup( void )const;
 
+    // xml read and write functions
     virtual void to_xml( const std::string& filename )const;
     virtual void to_xml( xmlDocPtr doc, xmlNodePtr root )const;
-
     virtual void from_xml( const std::string& filename );
     virtual void from_xml( xmlNodePtr root );
+  
+    // Obtain world model objects
+    inline std::map< std::string, Object* >& objects( void ){ return _objects; };
+    inline const std::map< std::string, Object* >& objects( void )const{ return _objects; };
 
+    // Sorting of objects based on spatial characteristics. 
+    virtual void sort_object_collections(void);
+
+    // Min and max sorting function for objects along x axis.
+    static bool min_x_sort( const Object* a, const Object* b );
+    static bool max_x_sort( const Object* a, const Object* b );
+
+    // Array sorting for min and max x sorted objects. 
+    static void min_x_sort_objects( std::vector< Object* >& objects );
+    static void max_x_sort_objects( std::vector< Object* >& objects );
+
+    // Min and max sorting function for objects along y axis.
+    static bool min_y_sort( const Object* a, const Object* b );
+    static bool max_y_sort( const Object* a, const Object* b );
+
+    // Array sorting for min and max y sorted objects. 
+    static void min_y_sort_objects( std::vector< Object* >& objects );
+    static void max_y_sort_objects( std::vector< Object* >& objects );
+   
+    // Sorting according to the absolute y coordinate.
+    static bool min_abs_x_sort( const Object* a, const Object* b );
+    static bool max_abs_x_sort( const Object* a, const Object* b );
+    static bool min_abs_y_sort( const Object* a, const Object* b );
+    static bool max_abs_y_sort( const Object* a, const Object* b );
+ 
+    // Min and max sorting function for objects along z axis.
+    static bool min_z_sort( const Object* a, const Object* b );
+    static bool max_z_sort( const Object* a, const Object* b );
+
+    // Min and max sorting function for objects with distance from origin.
+    static bool min_distance_sort( const Object* a, const Object* b );
+    static bool max_distance_sort( const Object* a, const Object* b );
+
+    // Array sorting for min and max distance sorted objects. 
+    static void min_distance_sort_objects( std::vector< Object* >& objects );
+    static void max_distance_sort_objects( std::vector< Object* >& objects );
+
+    // Array sorting for min and max distance from center sorted objects. 
+    static void min_center_distance_sort_objects( std::vector< Object* >& objects );
+    static void max_center_distance_sort_objects( std::vector< Object* >& objects );
+     
+    inline const std::map< std::string, std::map< std::string, std::vector< Object* > > >& sorted_objects( void )const{ return _sorted_objects; };
+    
+    // Time stamp for the world model
     inline unsigned long long& time( void ){ return _time; };
     inline const unsigned long long& time( void )const{ return _time; };
-    inline std::vector< Object* >& objects( void ){ return _objects; };
-    inline const std::vector< Object* >& objects( void )const{ return _objects; };
+    
+    // Convert model format.
+    virtual void convert_models( xmlNodePtr root );
+
+    // Transform objects with respect to object with id "reference_object_id"
+    virtual bool transform_objects( const std::string& referece_object_id );
 
   protected:
-    unsigned long long _time;
-    std::vector< Object* > _objects;
+   // World model time instant.
+   unsigned long long _time;
 
+   // World model objects.
+   std::map< std::string, Object* > _objects;
+
+    // Sorted world model objects.
+    std::map< std::string, std::map< std::string, std::vector< Object* > > > _sorted_objects;
+
+    // Initialise sorted object collections
+    void initialise_sorted_object_collections( void );
+    
   private:
 
   };

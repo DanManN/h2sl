@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(h2sl)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE PATH "default install prefix" FORCE)
+endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 OPTION(BUILD_SHARED_LIBS "build dynamic libraries" OFF)
 
@@ -21,6 +24,13 @@ if(APPLE)
 elseif(UNIX)
   add_definitions(-Wall -Wno-unused-but-set-variable -g -O3)
 endif()
+
+message("PROJECT_SOURCE_DIR:${PROJECT_SOURCE_DIR}")
+
+#add configure_file for GLib
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_BINARY_DIR}/share/cmake-${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}/Modules/)
+configure_file(${PROJECT_SOURCE_DIR}/cmake/FindGLib.cmake.in ${CMAKE_INSTALL_PREFIX}/share/cmake-${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}/Modules/FindGLib.cmake @ONLY)
+
 
 # add the include directories to the build
 set(DIRS src/common
@@ -50,6 +60,16 @@ function(generate_ggo)
   )
 endfunction(generate_ggo)
 
+message("CMAKE_MODULE_PATH:${CMAKE_MODULE_PATH}")
+
+# search for the glib package, exit if not found
+find_package(GLib)
+if( NOT glib_FOUND )
+  message( FATAL_ERROR "glib not found\n" )
+  return()
+endif()
+include_directories(${GLIB_INCLUDE_DIRS})
+
 # search for the libxml2 package, exit if not found
 find_package(LibXml2)
 if( NOT LIBXML2_FOUND )
@@ -66,7 +86,6 @@ if( NOT Boost_FOUND )
 endif()
 include_directories(${Boost_INCLUDE_DIR})
 
-# search for the LBFGS libraries
 find_library(LBFGS_LIBRARY NAMES liblbfgs lbfgs HINTS ${CMAKE_BINARY_DIR}/lib /usr/lib /usr/local/lib /opt/local/lib)
 if( NOT LBFGS_LIBRARY )
   message( FATAL_ERROR "lbfgs not found\n")
@@ -81,6 +100,8 @@ if( NOT Qt4_FOUND )
 endif()
 include(${QT_USE_FILE})
 include_directories(${QT_INCLUDE_DIR})
+
+# search for the GLIB package, exit if not found
 
 # function for installing headers
 function(process_hdrs)

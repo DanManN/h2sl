@@ -35,37 +35,55 @@
 #define H2SL_GROUNDING_H
 
 #include <iostream>
-#include <libxml/tree.h>
+#include <vector>
 #include <map>
+#include <libxml/tree.h>
 
 namespace h2sl {
+  class World;
+
+  class Grounding_Set;
+
   class Grounding {
   public:
-    Grounding( const std::map< std::string, std::string >& properties = std::map< std::string, std::string >() );
+    Grounding( const std::map< std::string, std::string >& stringProperties = std::map< std::string, std::string >(), const std::map< std::string, int >& intProperties = std::map< std::string, int >() );
     virtual ~Grounding();
     Grounding( const Grounding& other );
     Grounding& operator=( const Grounding& other );
     bool operator==( const Grounding& other )const;
     bool operator!=( const Grounding& other )const;
-    virtual Grounding* dup( void )const;
+    virtual Grounding* dup( void )const = 0;
 
-    virtual void to_xml( const std::string& filename )const;
-    virtual void to_xml( xmlDocPtr doc, xmlNodePtr root )const;
+    virtual std::string evaluate_cv( const Grounding_Set* groundingSet )const = 0;
+    virtual bool matches_class_name( const std::string& arg )const = 0;
+    virtual void scrape_grounding( const World* world, std::map< std::string, std::vector< std::string > >& stringTypes, std::map< std::string, std::vector< int > >& intTypes )const = 0;
+    virtual void scrape_grounding( const World* world, std::vector< std::string >& classNames, std::map< std::string, std::vector< std::string > >& stringTypes, std::map< std::string, std::vector< int > >& intTypes )const = 0;
+    virtual void fill_rules( const World* world, Grounding_Set* groundingSet )const = 0;
 
-    virtual void from_xml( const std::string& filename );
-    virtual void from_xml( xmlNodePtr root );
+    virtual bool equals( const Grounding& other )const = 0;
 
-    inline const std::map< std::string, std::string >& properties( void )const{ return _properties; };
+    virtual void to_xml( const std::string& filename )const = 0;
+    virtual void to_xml( xmlDocPtr doc, xmlNodePtr root )const = 0;
+    virtual std::string to_latex( void )const = 0;
+
+    virtual void from_xml( const std::string& filename, World* world ) = 0;
+    virtual void from_xml( xmlNodePtr root, World* world ) = 0;
+
+    inline std::map< std::string, std::string >& string_properties( void ){ return _string_properties; };
+    inline const std::map< std::string, std::string >& string_properties( void )const{ return _string_properties; };
+    inline std::map< std::string, int >& int_properties( void ){ return _int_properties; };
+    inline const std::map< std::string, int >& int_properties( void )const{ return _int_properties; };
 
   protected:
-    virtual bool _equals( const Grounding& other )const;
-  
-    std::map< std::string, std::string > _properties;
+    std::map< std::string, std::string > _string_properties;
+    std::map< std::string, int > _int_properties;  
 
   private:
 
   };
   std::ostream& operator<<( std::ostream& out, const Grounding& other );
+  
+  std::ostream& operator<<( std::ostream& out, const std::vector< Grounding* >& other );
 }
 
 #endif /* H2SL_GROUNDING_H */

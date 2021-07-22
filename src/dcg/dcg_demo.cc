@@ -55,18 +55,9 @@ main( int argc,
     exit(1);
   }
 
-  Parser< Phrase > * parser = new Parser_CYK< Phrase >();
-  Grammar * grammar = new Grammar();
-  grammar->from_xml( args.grammar_arg );
-
   vector< Phrase* > phrases;
   
   Grounding * context = NULL;
-
-  World * world = new World();
-  if( args.world_given ){
-    world->from_xml( args.world_arg );
-  }
 
   Feature_Set * feature_set = new Feature_Set();
   LLM * llm = new LLM( feature_set );
@@ -74,67 +65,154 @@ main( int argc,
     llm->from_xml( args.llm_arg );
   }
 
+  Symbol_Dictionary * symbol_dictionary = new Symbol_Dictionary( args.sd_arg );
+
+  Search_Space * search_space = new Search_Space();
+
   DCG * dcg = new DCG();
-  
+ 
   struct timeval start_time;
-  gettimeofday( &start_time, NULL );
-
-  dcg->fill_search_spaces( world );
-
   struct timeval end_time;
-  gettimeofday( &end_time, NULL );
 
   cout << "finished fill_seach_space in " << diff_time( start_time, end_time ) << " seconds" << endl;
-
-  cout << endl << "search_spaces.size(): " << dcg->search_spaces().size() << endl << endl;
-
-  cout << "parsing \"" << args.command_arg << "\"" << endl;
-  if( parser->parse( *grammar, args.command_arg, phrases ) ){
-    for( unsigned int i = 0; i < phrases.size(); i++ ){
-      if( phrases[ i ] != NULL ){
-        cout << "phrases[" << i << "]:" << *phrases[ i ] << endl;
+  cout << endl << "[from search space] search_spaces grounding pairs size(): " << search_space->grounding_pairs().size() << endl << endl;
+  if( args.example_given ){
+    World * world = new World();
+    world->from_xml( args.example_arg );
     
-        gettimeofday( &start_time, NULL );
+    Phrase * phrase = new Phrase();
+    phrase->from_xml( args.example_arg, world );
+    phrase->clear_grounding_sets();
 
-        dcg->leaf_search( phrases[ i ], world, context, llm, args.beam_width_arg );
+    phrase->to_xml( "/tmp/phrase.xml" ); 
 
-        gettimeofday( &end_time, NULL );
+    // By default option is "all"
+    search_space->fill_groundings( *symbol_dictionary, world );
+    cout << "search_space:" << *search_space << endl;
+  
+    gettimeofday( &start_time, NULL );
 
-        cout << "finished search in " << diff_time( start_time, end_time ) << " seconds" << endl;   
-        for( unsigned int j = 0; j < dcg->solutions().size(); j++ ){
-          cout << "  solutions[" << j << "]:" << *dcg->solutions()[ j ].second << " (" << dcg->solutions()[ j ].first << ")" << endl;
+    dcg->leaf_search( phrase, *symbol_dictionary, search_space, world, context, llm, args.beam_width_arg, ( bool )( args.debug_arg ) );
+
+    gettimeofday( &end_time, NULL );
+
+    cout << "finished search in " << diff_time( start_time, end_time ) << " seconds" << endl;
+    for( unsigned int j = 0; j < dcg->solutions().size(); j++ ){
+      cout << "  solutions[" << j << "]:" << *dcg->solutions()[ j ].second << " (" << dcg->solutions()[ j ].first << ")" << endl;
+    }
+
+    if( args.output_given ){
+      string filename = args.output_arg;
+      if( filename.find( ".xml" ) != string::npos ){
+        if( phrases.size() == 1 ){
+          dcg->solutions().front().second->to_xml( filename );
+        } else {
+          dcg->solutions().front().second->to_xml( args.output_arg );
         }
+      }
+    }
+  
+    if( phrase != NULL ){
+      delete phrase;
+      phrase = NULL;
+    }
+
+    if( world != NULL ){
+      delete world;
+      world = NULL;
+    } 
+  }
+  
+  if( args.grammar_given && args.command_given && args.world_given ){
+    World * world = new World();
+    if( args.world_given ){
+      world->from_xml( args.world_arg );
+    }
+
+    Parser< Phrase > * parser = new Parser_CYK< Phrase >();
+    Grammar * grammar = new Grammar();
+    grammar->from_xml( args.grammar_arg );
+
+    cout << "parsing \"" << args.command_arg << "\"" << endl;
+    if( parser->parse( *grammar, args.command_arg, phrases ) ){
+      for( unsigned int i = 0; i < phrases.size(); i++ ){
+        if( phrases[ i ] != NULL ){
+          cout << "phrases[" << i << "]:" << *phrases[ i ] << endl;
+          stringstream phrase_tmp;
+          phrase_tmp << "/tmp/phrase_" << i << ".xml";
+          phrases[ i ]->to_xml( phrase_tmp.str() ); 
+
+           // By default "all"
+          search_space->fill_groundings( *symbol_dictionary, world );
+          cout << "search_space:" << *search_space << endl;
+  
+          gettimeofday( &start_time, NULL );
+          
+          dcg->leaf_search( phrases[ i ], *symbol_dictionary, search_space, world, context, llm, args.beam_width_arg, ( bool )( args.debug_arg ) );
+
+          gettimeofday( &end_time, NULL );
+
+          cout << "finished search in " << diff_time( start_time, end_time ) << " seconds" << endl;   
+          for( unsigned int j = 0; j < dcg->solutions().size(); j++ ){
+            cout << "  solutions[" << j << "]:" << *dcg->solutions()[ j ].second << " (" << dcg->solutions()[ j ].first << ")" << endl;
+          }
    
-        if( args.output_given ){
-          string filename = args.output_arg;
-          if( filename.find( ".xml" ) != string::npos ){
-            if( phrases.size() == 1 ){
-              dcg->solutions().front().second->to_xml( filename );
-            } else {
-              boost::trim_if( filename, boost::is_any_of( ".xml" ) );
-              stringstream tmp;
-              tmp << filename << "_" << setw( 4 ) << setfill( '0' ) << i << ".xml";
-              dcg->solutions().front().second->to_xml( tmp.str() );
+          if( args.output_given ){
+            string filename = args.output_arg;
+            if( filename.find( ".xml" ) != string::npos ){
+              if( phrases.size() == 1 ){
+                dcg->solutions().front().second->to_xml( filename );
+              } else {
+                boost::trim_if( filename, boost::is_any_of( ".xml" ) );
+                stringstream tmp;
+                tmp << filename << "_" << setw( 4 ) << setfill( '0' ) << i << ".xml";
+                dcg->solutions().front().second->to_xml( tmp.str() );
+              }
             }
           }
-        }
 
-        if( args.latex_output_given ){
-          string filename = args.latex_output_arg;
-          if( filename.find( ".tex" ) != string::npos ){
-            if( phrases.size() == 1 ){
-              dcg->to_latex( filename );
-            } else {
-              boost::trim_if( filename, boost::is_any_of( ".tex" ) );
-              stringstream tmp;
-              tmp << filename << "_" << setw( 4 ) << setfill( '0' ) << i << ".tex";
-              dcg->to_latex( tmp.str() );
+          if( args.latex_output_given ){
+            string filename = args.latex_output_arg;
+            if( filename.find( ".tex" ) != string::npos ){
+              if( phrases.size() == 1 ){
+                dcg->to_tikz( search_space, phrases[ i ], filename );
+              } else {
+                boost::trim_if( filename, boost::is_any_of( ".tex" ) );
+                stringstream tmp;
+                tmp << filename << "_" << setw( 4 ) << setfill( '0' ) << i << ".tex";
+                dcg->to_tikz( search_space, phrases[ i ], tmp.str() );
+              }
             }
           }
         } 
+      cout << "after dcg inference printing out the phrase:" << endl;
+      cout << *phrases[ i ] << endl;
+          } 
+        }
+
+      if( grammar != NULL ){
+        delete grammar;
+        grammar = NULL;
+      }
+
+     if( parser != NULL ){
+        delete parser;
+        parser = NULL;
+      }  
+
+      if( world != NULL ){
+        delete world;
+        world = NULL;
+      }
+
+    }
+
+    for( unsigned int i = 0; i < phrases.size(); i++ ){
+      if( phrases[ i ] != NULL ){
+        delete phrases[ i ];
+        phrases[ i ] = NULL;
       }
     }
-  }
 
   if( dcg != NULL ){
     delete dcg;
@@ -149,28 +227,6 @@ main( int argc,
   if( feature_set != NULL ){
     delete feature_set;
     feature_set = NULL;
-  }
-
-  if( world != NULL ){
-    delete world;
-    world = NULL;
-  }
-
-  for( unsigned int i = 0; i < phrases.size(); i++ ){
-    if( phrases[ i ] != NULL ){
-      delete phrases[ i ];
-      phrases[ i ] = NULL;
-    }
-  }
-
-  if( grammar != NULL ){
-    delete grammar;
-    grammar = NULL;
-  }
-
-  if( parser != NULL ){
-    delete parser;
-    parser = NULL;
   }
 
   cout << "end of DCG class demo program" << endl;

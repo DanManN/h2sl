@@ -40,12 +40,15 @@
 #include "h2sl/common.h"
 #include "h2sl/grounding.h"
 #include "h2sl/transform.h"
+#include "h2sl/symbol_dictionary.h"
 
 namespace h2sl {
   class Object : public Grounding {
   public:
-    Object( const std::string& name = "na", const std::string& objecType = "na", const Transform& transform = Transform(), const Vector3& linearVelocity = Vector3(), const Vector3& angularVelocity = Vector3() );
-    Object( xmlNodePtr root );
+    Object( const std::string& id = "na", const std::string& objectType = "na", const std::string& objectColor = "na", 
+            const Transform& transform = Transform(), const Vector3& linearVelocity = Vector3(), 
+            const Vector3& angularVelocity = Vector3() );
+    Object( xmlNodePtr root, World* world );
     virtual ~Object();
     Object( const Object& other );
     Object& operator=( const Object& other );
@@ -53,16 +56,30 @@ namespace h2sl {
     bool operator!=( const Object& other )const;
     virtual Object* dup( void )const;
 
+    virtual std::string evaluate_cv( const Grounding_Set* groundingSet )const;
+    virtual bool matches_class_name( const std::string& arg )const{ return ( arg == "object" ); };
+    virtual void scrape_grounding( const World * world, std::map< std::string, std::vector< std::string > >& stringTypes, std::map< std::string, std::vector< int > >& intTypes )const;
+    virtual void scrape_grounding( const World * world, std::vector< std::string >& classNames, std::map< std::string, std::vector< std::string > >& stringTypes, std::map< std::string, std::vector< int > >& intTypes )const;
+    static void fill_search_space( const Symbol_Dictionary& symbolDictionary, const World* world, std::map< std::string, std::pair< std::string, std::vector< Grounding* > > >& searchSpaces, const std::string& symbolType );
+    virtual void fill_rules( const World* world, Grounding_Set* groundingSet )const;
+    virtual bool equals( const Grounding& other )const;
+
     virtual void to_xml( const std::string& filename )const;
+    virtual void to_xml( const std::string& filename, const bool& writeAllProperties )const;
     virtual void to_xml( xmlDocPtr doc, xmlNodePtr root )const;
+    virtual void to_xml( xmlDocPtr doc, xmlNodePtr root, const bool& writeAllProperties )const;
 
-    virtual void from_xml( const std::string& filename );
-    virtual void from_xml( xmlNodePtr root );
+    virtual std::string to_latex( void )const;
 
-    inline std::string& name( void ){ return get_prop< std::string >( _properties, "name" ); };
-    inline const std::string& name( void )const{ return get_prop< std::string >( _properties, "name" ); };
-    inline std::string& object_type( void ){ return get_prop< std::string >( _properties, "object_type" ); };
-    inline const std::string& object_type( void )const{ return get_prop< std::string >( _properties, "object_type" ); };
+    virtual void from_xml( const std::string& filename, World* world );
+    virtual void from_xml( xmlNodePtr root, World* world );
+
+    inline std::string& id( void ){ return get_prop< std::string >( _string_properties, "id" ); };
+    inline const std::string& id( void )const{ return get_prop< std::string >( _string_properties, "id" ); };
+    inline std::string& type( void ){ return get_prop< std::string >( _string_properties, "object_type" ); };
+    inline const std::string& type( void )const{ return get_prop< std::string >( _string_properties, "object_type" ); };
+    inline std::string& color( void ){ return get_prop< std::string >( _string_properties, "object_color" ); };
+    inline const std::string& color( void )const{ return get_prop< std::string >( _string_properties, "object_color" ); };
     inline Transform& transform( void ){ return _transform; };
     inline const Transform& transform( void )const{ return _transform; };
     inline Vector3& linear_velocity( void ){ return _linear_velocity; };
@@ -71,7 +88,7 @@ namespace h2sl {
     inline const Vector3& angular_velocity( void )const{ return _angular_velocity; };
 
     static std::string class_name( void ){ return "object"; };
-
+  
   protected:
     Transform _transform;
     Vector3 _linear_velocity;
@@ -81,6 +98,8 @@ namespace h2sl {
 
   };
   std::ostream& operator<<( std::ostream& out, const Object& other );
+
+  std::ostream& operator<<( std::ostream& out, const std::vector< Object* >& other );
 }
 
 #endif /* H2SL_OBJECT_H */

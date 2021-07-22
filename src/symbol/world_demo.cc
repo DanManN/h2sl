@@ -57,8 +57,37 @@ main( int argc,
 
   cout << "world:(" << *world << ")" << endl;
 
+  for( map< string, map< string, vector< Object* > > >::const_iterator it_sorted_objects = world->sorted_objects().begin(); it_sorted_objects != world->sorted_objects().end(); it_sorted_objects++ ){
+    cout << "sorting:\"" << it_sorted_objects->first << "\"" << endl;
+    for( map< string, vector< Object* > >::const_iterator it_sorted_typed_objects = it_sorted_objects->second.begin(); it_sorted_typed_objects != it_sorted_objects->second.end(); it_sorted_typed_objects++ ){
+      cout << "  " << it_sorted_typed_objects->first << "[" << it_sorted_typed_objects->second.size() << "]:{";
+      for( unsigned int i = 0; i < it_sorted_typed_objects->second.size(); i++ ){
+        cout << it_sorted_typed_objects->second[ i ]->id();
+        if( i != ( it_sorted_typed_objects->second.size() - 1 ) ){
+          cout << ",";
+        }
+      }
+      cout << "}" << endl;
+    } 
+  }
+
+  World * other_world = new World( *world );
+  cout << "testing world equivalency operator, result should be true (1)" << endl;
+  cout << "*world == *other_world: " << ( *world == *other_world ) << endl << endl;
+  cout << "testing world inequivalency operator, result should be false (0)" << endl;
+  cout << "*world == *other_world: " << ( *world != *other_world ) << endl;
+
   if( args.output_given ){
     world->to_xml( args.output_arg );
+  }
+
+  if( ! world->objects().empty() ) {
+	const string reference_object_id = world->objects().begin()->first;
+	world->transform_objects(reference_object_id);
+	Transform origin = Transform();
+	origin.from_std_string("0,0,0,1,0,0,0");
+	cout << "testing reference object at origin, result should be true (1)" << endl;
+	cout << "reference object transform == origin: " << ( world->objects().begin()->second->transform().to_std_string() == origin.to_std_string() ) << endl;
   }
 
   if( world != NULL ){

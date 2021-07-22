@@ -33,16 +33,38 @@
 
 #include <assert.h>
 #include "h2sl/grounding.h"
+#include "h2sl/rule_object_type.h"
+#include "h2sl/rule_container_type.h"
+#include "h2sl/rule_object_color.h"
+#include "h2sl/rule_spatial_relation.h"
+#include "h2sl/rule_constraint_type.h"
+#include "h2sl/rule_constraint_payload_type.h"
+#include "h2sl/rule_constraint_reference_type.h"
+#include "h2sl/rule_index.h"
+#include "h2sl/rule_number.h"
 #include "h2sl/object.h"
 #include "h2sl/region.h"
 #include "h2sl/constraint.h"
 #include "h2sl/grounding_set.h"
+#include "h2sl/abstract_container.h"
+#include "h2sl/region_abstract_container.h"
+#include "h2sl/container.h"
+#include "h2sl/region_container.h"
+#include "h2sl/index.h"
+#include "h2sl/number.h"
+#include "h2sl/object_color.h"
+#include "h2sl/object_property.h"
+#include "h2sl/object_type.h"
+#include "h2sl/container_type.h"
+#include "h2sl/spatial_relation.h"
 
 using namespace std;
 using namespace h2sl;
 
 Grounding::
-Grounding( const std::map< std::string, std::string >& properties ) : _properties( properties ) {
+Grounding( const std::map< std::string, std::string >& stringProperties,
+            const std::map< std::string, int >& intProperties ) : _string_properties( stringProperties ),
+                                                                  _int_properties( intProperties ) {
 
 } 
 
@@ -52,21 +74,23 @@ Grounding::
 }
 
 Grounding::
-Grounding( const Grounding& other ) : _properties( other._properties ){
+Grounding( const Grounding& other ) : _string_properties( other._string_properties ),
+                                      _int_properties( other._int_properties ){
 
 }
 
 Grounding&
 Grounding::
 operator=( const Grounding& other ) {
-  _properties = other._properties;
+  _string_properties = other._string_properties;
+  _int_properties = other._int_properties;
   return (*this);
 }
 
 bool 
 Grounding::
 operator==( const Grounding& other )const{
-  return _equals( other );
+  return equals( other );
 }
 
 bool 
@@ -75,56 +99,77 @@ operator!=( const Grounding& other )const{
   return !( *this == other );
 }
 
-Grounding*
-Grounding::
-dup( void )const{
-  return new Grounding( *this );
-}
-
-void 
-Grounding::
-to_xml( const string& filename )const{
-  return;
-}
-
-void 
-Grounding::
-to_xml( xmlDocPtr doc, 
-        xmlNodePtr root )const{
-  return;
-}
-
-void 
-Grounding::
-from_xml( const string& filename ){
-  return;
-}
-
-void 
-Grounding::
-from_xml( xmlNodePtr root ){
-  return;
-}
-
-bool
-Grounding::
-_equals( const Grounding& other )const{
-  return true;
-}
-
 namespace h2sl {
   ostream&
   operator<<( ostream& out,
               const Grounding& other ) {
     if( dynamic_cast< const Grounding_Set* >( &other ) != NULL ){
       out << *static_cast< const Grounding_Set* >( &other ); 
+    } else if( dynamic_cast< const Rule_Object_Type* >( &other ) != NULL ){
+      out << *static_cast< const Rule_Object_Type* >( &other );
+    } else if( dynamic_cast< const Rule_Container_Type* >( &other ) != NULL ){
+      out << *static_cast< const Rule_Container_Type* >( &other );
+    } else if( dynamic_cast< const Rule_Object_Color* >( &other ) != NULL ){
+      out << *static_cast< const Rule_Object_Color* >( &other );
+    } else if( dynamic_cast< const Rule_Spatial_Relation* >( &other ) != NULL ){
+      out << *static_cast< const Rule_Spatial_Relation* >( &other );
+    } else if( dynamic_cast< const Rule_Constraint_Type* >( &other ) != NULL ){
+      out << *static_cast< const Rule_Constraint_Type* >( &other );
+    } else if( dynamic_cast< const Rule_Constraint_Payload_Type* >( &other ) != NULL ){
+      out << *static_cast< const Rule_Constraint_Payload_Type* >( &other );
+    } else if( dynamic_cast< const Rule_Constraint_Reference_Type* >( &other ) != NULL ){
+      out << *static_cast< const Rule_Constraint_Reference_Type* >( &other );
+    } else if( dynamic_cast< const Rule_Index* >( &other ) != NULL ){
+      out << *static_cast< const Rule_Index* >( &other );
+    } else if( dynamic_cast< const Rule_Number* >( &other ) != NULL ){
+      out << *static_cast< const Rule_Number* >( &other );
     } else if( dynamic_cast< const Object* >( &other ) != NULL ){
       out << *static_cast< const Object* >( &other );
     } else if( dynamic_cast< const Region* >( &other ) != NULL ){
       out << *static_cast< const Region* >( &other );
     } else if( dynamic_cast< const Constraint* >( &other ) != NULL ){
       out << *static_cast< const Constraint* >( &other );
+    } else if( dynamic_cast< const Abstract_Container* >( &other ) != NULL ){
+      out << *static_cast< const Abstract_Container* >( &other );
+    } else if( dynamic_cast< const Region_Abstract_Container* >( &other ) != NULL ){
+      out << *static_cast< const Region_Abstract_Container* >( &other );
+    } else if( dynamic_cast< const Container* >( &other ) != NULL ){
+      out << *static_cast< const Container* >( &other );
+    } else if( dynamic_cast< const Region_Container* >( &other ) != NULL ){
+      out << *static_cast< const Region_Container* >( &other );
+    } else if( dynamic_cast< const Index* >( &other ) != NULL ){
+      out << *static_cast< const Index* >( &other );
+    } else if( dynamic_cast< const Number* >( &other ) != NULL ){
+      out << *static_cast< const Number* >( &other );
+    } else if( dynamic_cast< const Object_Color* >( &other ) != NULL ){
+      out << *static_cast< const Object_Color* >( &other );
+    } else if( dynamic_cast< const Object_Property* >( &other ) != NULL ){
+      out << *static_cast< const Object_Property* >( &other );
+    } else if( dynamic_cast< const Object_Type* >( &other ) != NULL ){
+      out << *static_cast< const Object_Type* >( &other );
+    } else if( dynamic_cast< const Container_Type* >( &other ) != NULL ){
+      out << *static_cast< const Container_Type* >( &other );
+    } else if( dynamic_cast< const Spatial_Relation* >( &other ) != NULL ){
+      out << *static_cast< const Spatial_Relation* >( &other );
     }
+    return out;
+  }
+
+  ostream&
+  operator<<( ostream& out,
+              const vector< Grounding* >& other ) {
+    out << "[" << other.size() << "]:{";
+    for( unsigned int i = 0; i < other.size(); i++ ){
+      if( other[ i ] != NULL ){
+        out << *other[ i ];
+      } else {
+        out << "NULL";
+      }
+      if( i != ( other.size() - 1 ) ){
+        out << ",";
+      }
+    }
+    out << "}";
     return out;
   }
 }

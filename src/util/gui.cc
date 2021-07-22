@@ -116,7 +116,7 @@ paint( QPainter * painter,
   if( _factor != NULL ){
     painter->setPen( QPen( Qt::white, 2.0 ) );
     painter->setFont( QFont( QApplication::font().defaultFamily(), 12, QFont::Bold ) );
-//    painter->drawText( QRect( -18, -18, 36, 36 ), QString::fromStdString( _factor->name() ), QTextOption( Qt::AlignCenter ) );
+//    painter->drawText( QRect( -18, -18, 36, 36 ), QString::fromStdString( _factor->id() ), QTextOption( Qt::AlignCenter ) );
   }
 */
   return;
@@ -214,8 +214,8 @@ mousePressEvent( QGraphicsSceneMouseEvent * event ){
     comment_string << *static_cast< const Region* >( _grounding );
   } else if ( dynamic_cast< const Constraint* >( _grounding ) != NULL ){
     comment_string << *static_cast< const Constraint* >( _grounding );
-  } else if ( dynamic_cast< const Phrase* >( _grounding ) != NULL ){
-    comment_string << *static_cast< const Phrase* >( _grounding );
+  } else if ( dynamic_cast< const Object* >( _grounding ) != NULL ){
+    comment_string << *static_cast< const Object* >( _grounding );
   }
   emit comment( comment_string.str(), false );
   return;
@@ -243,9 +243,92 @@ hoverLeaveEvent( QGraphicsSceneHoverEvent * event ){
   return;
 }
 
+QGraphicsItem_Phrase::
+QGraphicsItem_Phrase( const Phrase * phrase,
+                         QGraphicsItem * parent ) : QObject(),
+                                                    QGraphicsItem(),
+                                                    _phrase( phrase ),
+                                                    _highlight( false ),
+                                                    _qgraphicslineitems(){
+  setAcceptHoverEvents( true );
+}
+
+QGraphicsItem_Phrase::
+~QGraphicsItem_Phrase() {
+
+}
+
+QRectF
+QGraphicsItem_Phrase::
+boundingRect( void )const{
+  return QRect( -32, -32, 64, 64 );
+}
+
+void
+QGraphicsItem_Phrase::
+paint( QPainter * painter,
+        const QStyleOptionGraphicsItem* option,
+        QWidget * widget ){
+  if( _highlight ){
+    painter->setBrush( Qt::yellow );
+    painter->setPen( Qt::NoPen );
+    painter->drawEllipse( -32, -32, 64, 64 );
+  }
+
+  QRadialGradient gradient( -8, -8, 8 );
+  gradient.setColorAt( 0, QColor( 255, 255, 255 ) );
+  gradient.setColorAt( 1, QColor( 224, 224, 224 ) );
+  painter->setBrush( gradient );
+  painter->setPen( QPen( Qt::black, 2.0 ) );
+  painter->drawEllipse( -24, -24, 48, 48 );
+
+  if( _phrase != NULL ){
+    painter->setPen( QPen( Qt::black, 2.0 ) );
+    painter->setFont( QFont( QApplication::font().defaultFamily(), 12, QFont::Bold ) );
+    painter->drawText( QRect( -24, -24, 48, 48 ), QString::fromStdString( Phrase::phrase_type_t_to_std_string( _phrase->type() ) ), QTextOption( Qt::AlignCenter ) );
+  }
+
+  return;
+}
+
+void
+QGraphicsItem_Phrase::
+mousePressEvent( QGraphicsSceneMouseEvent * event ){
+  stringstream comment_string;
+  if( _phrase != NULL ){
+    comment_string << *_phrase;
+  }
+  emit comment( comment_string.str(), false );
+  return;
+}
+
+void
+QGraphicsItem_Phrase::
+hoverEnterEvent( QGraphicsSceneHoverEvent * event ){
+  _highlight = true;
+  for( unsigned int i = 0; i < _qgraphicslineitems.size(); i++ ){
+    _qgraphicslineitems[ i ]->setPen( QPen( Qt::yellow, 5.0 ) );
+  }
+  update();
+  return;
+}
+
+void
+QGraphicsItem_Phrase::
+hoverLeaveEvent( QGraphicsSceneHoverEvent * event ){
+  _highlight = false;
+  for( unsigned int i = 0; i < _qgraphicslineitems.size(); i++ ){
+    _qgraphicslineitems[ i ]->setPen( QPen( Qt::black, 2.0 ) );
+  }
+  update();
+  return;
+}
+
 GUI::
 GUI( Grammar * grammar,
       Parser< Phrase > * parser,
+      Symbol_Dictionary * symbolDictionary,
+      Search_Space * searchSpace,
       World * world,
       Grounding * context,
       LLM * llm,
@@ -262,6 +345,8 @@ GUI( Grammar * grammar,
                           _group_box( NULL ),
                           _grammar( grammar ),
                           _parser( parser ),
+                          _symbol_dictionary( symbolDictionary ),
+                          _search_space( searchSpace ),
                           _world( world ),
                           _context( context ),
                           _llm( llm ),
@@ -338,12 +423,12 @@ GUI::
 update_world( void ){
 
   _list_widget_world->clear();
-  for( unsigned int i = 0; i < _world->objects().size(); i++ ){
+  for( map< string, Object* >::const_iterator it_world_object = _world->objects().begin(); it_world_object != _world->objects().end(); it_world_object++ ){
     stringstream item_string;
-    item_string << setw( 10 ) << setiosflags( ios::left | ios::fixed ) << _world->objects()[ i ]->name() << " ";
-    item_string << setw( 10 ) << setiosflags( ios::left | ios::fixed ) << _world->objects()[ i ]->object_type() << " ";
-    item_string << setw( 10 ) << setiosflags( ios::left | ios::fixed ) << _world->objects()[ i ]->transform().position().to_std_string() << " ";
-    item_string << setw( 10 ) << setiosflags( ios::left | ios::fixed ) << _world->objects()[ i ]->transform().orientation().to_std_string() << " ";
+    item_string << setw( 10 ) << setiosflags( ios::left | ios::fixed ) << it_world_object->second->id() << " ";
+    item_string << setw( 10 ) << setiosflags( ios::left | ios::fixed ) << it_world_object->second->type() << " ";
+    item_string << setw( 10 ) << setiosflags( ios::left | ios::fixed ) << it_world_object->second->transform().position().to_std_string() << " ";
+    item_string << setw( 10 ) << setiosflags( ios::left | ios::fixed ) << it_world_object->second->transform().orientation().to_std_string() << " ";
     _list_widget_world->addItem( QString::fromStdString( item_string.str() ) );
   }
   update();
@@ -361,7 +446,9 @@ update_graph( void ){
           disconnect( dynamic_cast< QGraphicsItem_Grounding* >( _graphics_items[ i ][ j ] ), SIGNAL( comment( const std::string&, const bool& ) ), this, SLOT( _receive_comment( const std::string&, const bool& ) ) );
         } else if ( dynamic_cast< QGraphicsItem_Factor* >( _graphics_items[ i ][ j ] ) != NULL ){
           disconnect( dynamic_cast< QGraphicsItem_Factor* >( _graphics_items[ i ][ j ] ), SIGNAL( comment( const std::string&, const bool& ) ), this, SLOT( _receive_comment( const std::string&, const bool& ) ) );
-        }
+        } else if ( dynamic_cast< QGraphicsItem_Phrase* >( _graphics_items[ i ][ j ] ) != NULL ){
+          disconnect( dynamic_cast< QGraphicsItem_Phrase* >( _graphics_items[ i ][ j ] ), SIGNAL( comment( const std::string&, const bool& ) ), this, SLOT( _receive_comment( const std::string&, const bool& ) ) );
+        } 
         _graphics_scene_graph->removeItem( _graphics_items[ i ][ j ] );
         delete _graphics_items[ i ][ j ];
         _graphics_items[ i ][ j ] = NULL;
@@ -417,6 +504,14 @@ update_graph( void ){
         }
       }
 
+      for( unsigned int i = 0; i < _graphics_items.size(); i++ ){
+        for( unsigned int j = 0; j < _graphics_items[ i ].size(); j++ ){
+          if( dynamic_cast< QGraphicsItem_Phrase* >( _graphics_items[ i ][ j ] ) != NULL ){
+            _graphics_scene_graph->addItem( _graphics_items[ i ][ j ] );
+          }
+        }
+      }
+
       _graphics_view_graph->fitInView( _graphics_scene_graph->sceneRect(), Qt::KeepAspectRatio );
     }
   }
@@ -465,7 +560,7 @@ _add_factor_set_graphics_items( const Factor_Set* factorSet,
   vector< QGraphicsItem_Factor* > factors;
 
   // add the phrase
-  QGraphicsItem_Grounding * qgraphicsitem_phrase = new QGraphicsItem_Grounding( factorSet->phrase() );
+  QGraphicsItem_Phrase * qgraphicsitem_phrase = new QGraphicsItem_Phrase( factorSet->phrase() );
   _graphics_items.back().push_back( qgraphicsitem_phrase );
   _graphics_items.back().back()->setPos( 128.0 * ( double )( _graphics_items.size() - 1 ), 0.0 );
   connect( qgraphicsitem_phrase, SIGNAL( comment( const std::string&, const bool& ) ), this, SLOT( _receive_comment( const std::string&, const bool& ) ) );
@@ -475,14 +570,14 @@ _add_factor_set_graphics_items( const Factor_Set* factorSet,
   _graphics_items.back().back()->setPos( 128.0 * ( double )( _graphics_items.size() - 1 ), 40.0 );
 
   // add the groundings
-  for( unsigned int i = 0; i < factorSet->solutions()[ solutionIndex ].groundings.size(); i++ ){
+  for( unsigned int i = 0; i < factorSet->solutions()[ solutionIndex ].grounding_set()->groundings().size(); i++ ){
     QGraphicsItem_Factor * qgraphicsitem_factor = new QGraphicsItem_Factor();
     _graphics_items.back().push_back( qgraphicsitem_factor );
     _graphics_items.back().back()->setPos( 128.0 * ( double )( _graphics_items.size() - 1 ), -64.0 - 128.0 * ( double )( i ) );
     connect( qgraphicsitem_factor, SIGNAL( comment( const std::string&, const bool& ) ), this, SLOT( _receive_comment( const std::string&, const bool& ) ) );
     factors.push_back( qgraphicsitem_factor );
 
-    QGraphicsItem_Grounding * qgraphicsitem_grounding = new QGraphicsItem_Grounding( factorSet->solutions()[ solutionIndex ].groundings[ i ] );
+    QGraphicsItem_Grounding * qgraphicsitem_grounding = new QGraphicsItem_Grounding( factorSet->solutions()[ solutionIndex ].grounding_set()->groundings()[ i ] );
     _graphics_items.back().push_back( qgraphicsitem_grounding );
     _graphics_items.back().back()->setPos( 128.0 * ( double )( _graphics_items.size() - 1 ), -128.0 - 128.0 * ( double )( i ) );
     connect( qgraphicsitem_grounding, SIGNAL( comment( const std::string&, const bool& ) ), this, SLOT( _receive_comment( const std::string&, const bool& ) ) );
@@ -514,8 +609,8 @@ _add_factor_set_graphics_items( const Factor_Set* factorSet,
 */
   }
 
-  for( unsigned int i = 0; i < factorSet->children().size(); i++ ){
-    _add_factor_set_graphics_items( factorSet->children()[ i ], factorSet->solutions()[ solutionIndex ].children[ i ], factors );
+  for( unsigned int i = 0; i < factorSet->child_factor_sets().size(); i++ ){
+    _add_factor_set_graphics_items( factorSet->child_factor_sets()[ i ], factorSet->solutions()[ solutionIndex ].child_solution_indices()[ i ], factors );
   }
 
   return;
@@ -534,7 +629,7 @@ _run_inference( const string& sentence ){
       if( phrases.front() != NULL ){
         struct timeval start_time;
         gettimeofday( &start_time, NULL );
-        if( _dcg->leaf_search( phrases.front(), _world, _context, _llm, _beam_width ) ){
+        if( _dcg->leaf_search( phrases.front(), *_symbol_dictionary, _search_space, _world, _context, _llm, _beam_width ) ){
           struct timeval end_time;
           gettimeofday( &end_time, NULL );
           comment_string.str( string() );
@@ -554,7 +649,7 @@ _run_inference( const string& sentence ){
       if( _dcg->root() != NULL ){
         for( unsigned int i = 0; i < _dcg->root()->solutions().size(); i++ ){
           stringstream solution_string;
-          solution_string << "solution " << i + 1 << " (" << _dcg->root()->solutions()[ i ].pygx << ")";
+          solution_string << "solution " << i + 1 << " (" << _dcg->root()->solutions()[ i ].pygx() << ")";
           _combo_box_solutions->addItem( QString::fromStdString( solution_string.str() ) );
         } 
       }

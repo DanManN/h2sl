@@ -64,7 +64,7 @@ operator=( const Feature_Constraint_Parent_Matches_Child_Region& other ) {
 
 bool
 Feature_Constraint_Parent_Matches_Child_Region::
-value( const unsigned int& cv,
+value( const string& cv,
         const Grounding* grounding,
         const vector< pair< const Phrase*, vector< Grounding* > > >& children,
         const Phrase* phrase,
@@ -74,7 +74,7 @@ value( const unsigned int& cv,
 
 bool
 Feature_Constraint_Parent_Matches_Child_Region::
-value( const unsigned int& cv,
+value( const string& cv,
         const Grounding* grounding,
         const vector< pair< const Phrase*, vector< Grounding* > > >& children,
         const Phrase* phrase,
@@ -86,7 +86,9 @@ value( const unsigned int& cv,
       for( unsigned int j = 0; j < children[ i ].second.size(); j++ ){
         const Region * child = dynamic_cast< const Region* >( children[ i ].second[ j ] );
         if( child != NULL ){
-          if( constraint->parent() == *child ){
+          map< string, Object* >::const_iterator it_child_region_object = world->objects().find( child->object_id() );
+          assert( it_child_region_object != world->objects().end() );
+          if( constraint->payload() == it_child_region_object->second->id() ){
             return !_invert;
           }
         }

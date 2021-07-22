@@ -74,6 +74,121 @@ operator=( const Grammar& other ) {
   return (*this);
 }
 
+void
+Grammar::
+scrape_phrases( const Phrase* phrase,
+                vector< Grammar_Terminal >& terminals,
+                vector< Grammar_Non_Terminal >& nonTerminals ){
+  // check for unique terminals
+  for( unsigned int i = 0; i < phrase->words().size(); i++ ){
+    for( unsigned int j = 0; j < terminals.size(); j++ ){
+      if( pos_t_to_std_string( phrase->words()[ i ].pos() ) == terminals[ j ].symbol() ){
+        bool found_match = false;
+        for( unsigned int k = 0; k < terminals[ j ].words().size(); k++ ){
+          if( phrase->words()[ i ].text() == terminals[ j ].words()[ k ] ){
+            found_match = true;
+          }
+        }
+        if( !found_match ){
+          terminals[ j ].words().push_back( phrase->words()[ i ].text() );
+        }
+        break;
+      }
+    }
+  }
+
+  // check for unique non-terminals 
+  Grammar_Non_Terminal grammar_non_terminal( Phrase::phrase_type_t_to_std_string( phrase->type() ) );
+  // add words  
+  for( unsigned int i = 0; i < phrase->words().size(); i++ ){
+    grammar_non_terminal.elements().push_back( pos_t_to_std_string( phrase->words()[ i ].pos() ) + "[" + phrase->words()[ i ].text() + "]" );
+  }
+  for( unsigned int i = 0; i < phrase->children().size(); i++ ){
+    grammar_non_terminal.elements().push_back( Phrase::phrase_type_t_to_std_string( phrase->children()[ i ]->type() ) );
+  }
+  bool found_match = false;
+  for( unsigned int i = 0; i < nonTerminals.size(); i++ ){
+    if( grammar_non_terminal == nonTerminals[ i ] ){
+      found_match = true;
+    }
+  }
+  if( !found_match ){
+    nonTerminals.push_back( grammar_non_terminal );
+  }
+
+  for( unsigned int i = 0; i < phrase->children().size(); i++ ){
+    scrape_phrases( phrase->children()[ i ], terminals, nonTerminals );
+  }
+  return;
+}
+
+void
+Grammar::
+scrape_phrases( const Phrase* phrase,
+                map< string, vector< Grammar_Terminal > >& terminals,
+                map< string, vector< Grammar_Non_Terminal > >& nonTerminals ){
+  // find the phrase type in the maps
+  map< string, vector< Grammar_Terminal > >::iterator it_terminals = terminals.find( Phrase::phrase_type_t_to_std_string( phrase->type() ) );
+  if( it_terminals == terminals.end() ){
+    terminals.insert( pair< string, vector< Grammar_Terminal > >( Phrase::phrase_type_t_to_std_string( phrase->type() ), vector< Grammar_Terminal >() ) );
+    it_terminals = terminals.find( Phrase::phrase_type_t_to_std_string( phrase->type() ) );
+    for( unsigned int i = POS_CC; i < NUM_POS_TAGS; i++ ){
+      it_terminals->second.push_back( Grammar_Terminal( pos_t_to_std_string( ( pos_t )( i ) ) ) );
+    }
+    for( unsigned int i = PHRASE_NP; i < NUM_PHRASE_TYPES; i++ ){
+      it_terminals->second.push_back( Grammar_Terminal( Phrase::phrase_type_t_to_std_string( ( phrase_type_t )( i ) ) ) );
+    }
+  }
+
+  map< string, vector< Grammar_Non_Terminal > >::iterator it_non_terminals = nonTerminals.find( Phrase::phrase_type_t_to_std_string( phrase->type() ) );
+  if( it_non_terminals == nonTerminals.end() ){
+    nonTerminals.insert( pair< string, vector< Grammar_Non_Terminal > >( Phrase::phrase_type_t_to_std_string( phrase->type() ), vector< Grammar_Non_Terminal >() ) );
+    it_non_terminals = nonTerminals.find( Phrase::phrase_type_t_to_std_string( phrase->type() ) );
+  }
+
+  // check for unique terminals
+  for( unsigned int i = 0; i < phrase->words().size(); i++ ){
+    for( unsigned int j = 0; j < it_terminals->second.size(); j++ ){
+      if( pos_t_to_std_string( phrase->words()[ i ].pos() ) == it_terminals->second[ j ].symbol() ){
+        bool found_match = false;
+        for( unsigned int k = 0; k < it_terminals->second[ j ].words().size(); k++ ){
+          if( phrase->words()[ i ].text() == it_terminals->second[ j ].words()[ k ] ){
+            found_match = true;
+          }
+        }
+        if( !found_match ){
+          it_terminals->second[ j ].words().push_back( phrase->words()[ i ].text() );
+        }
+        break;
+      }
+    }
+  }
+
+  // check for unique non-terminals 
+  Grammar_Non_Terminal grammar_non_terminal( Phrase::phrase_type_t_to_std_string( phrase->type() ) );
+  // add words  
+  for( unsigned int i = 0; i < phrase->words().size(); i++ ){
+    grammar_non_terminal.elements().push_back( pos_t_to_std_string( phrase->words()[ i ].pos() ) + "[" + phrase->words()[ i ].text() + "]" );
+  }
+  for( unsigned int i = 0; i < phrase->children().size(); i++ ){
+    grammar_non_terminal.elements().push_back( Phrase::phrase_type_t_to_std_string( phrase->children()[ i ]->type() ) );
+  }
+  bool found_match = false;
+  for( unsigned int i = 0; i < it_non_terminals->second.size(); i++ ){
+    if( grammar_non_terminal == it_non_terminals->second[ i ] ){
+      found_match = true;
+    }
+  }
+  if( !found_match ){
+    it_non_terminals->second.push_back( grammar_non_terminal );
+  }
+
+  for( unsigned int i = 0; i < phrase->children().size(); i++ ){
+    scrape_phrases( phrase->children()[ i ], terminals, nonTerminals );
+  }
+  return;
+}
+
 void 
 Grammar::
 to_xml( const string& filename )const{

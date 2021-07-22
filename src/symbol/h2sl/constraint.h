@@ -41,33 +41,46 @@
 namespace h2sl {
   class Constraint: public Grounding {
   public:
-    Constraint( const std::string& constraintType = "na", const Region& parent = Region(), const Region& child = Region() );
-    Constraint( xmlNodePtr root );
+    Constraint( const std::string& constraintType = "na", const std::string& payload = "na", const std::string& reference = "na", const std::string& referenceRelation = "na" );
+    Constraint( const std::string& constraintType,  const std::string& payload, const std::string& payloadRelation, const std::string& reference, const std::string& referenceRelation);
+    Constraint( xmlNodePtr root, World* world );
     virtual ~Constraint();
     Constraint( const Constraint& other );
     Constraint& operator=( const Constraint& other );
     bool operator==( const Constraint& other )const;
     bool operator!=( const Constraint& other )const;
     virtual Grounding* dup( void )const;
-    
+
+    virtual std::string evaluate_cv( const Grounding_Set* groundingSet )const; 
+    virtual bool matches_class_name( const std::string& arg )const{ return ( arg == "constraint" ); };
+    virtual void scrape_grounding( const World * world, std::map< std::string, std::vector< std::string > >& stringTypes, std::map< std::string, std::vector< int > >& intTypes )const;
+    virtual void scrape_grounding( const World * world, std::vector< std::string >& classNames, std::map< std::string, std::vector< std::string > >& stringTypes, std::map< std::string, std::vector< int > >& intTypes )const;
+    static void fill_search_space( const Symbol_Dictionary& symbolDictionary, const World* world, std::map< std::string, std::pair< std::string, std::vector< Grounding* > > >& searchSpaces, const std::string& symbolType ); 
+    virtual void fill_rules( const World* world, Grounding_Set* groundingSet )const;
+    virtual bool equals( const Grounding& other )const; 
+ 
     virtual void to_xml( const std::string& filename )const;
     virtual void to_xml( xmlDocPtr doc, xmlNodePtr root )const;
 
-    virtual void from_xml( const std::string& filename );
-    virtual void from_xml( xmlNodePtr root );
+    virtual std::string to_latex( void )const;
 
-    inline std::string& constraint_type( void ){ return get_prop< std::string >( _properties, "constraint_type" ); };
-    inline const std::string& constraint_type( void )const{ return get_prop< std::string >( _properties, "constraint_type" ); };
-    inline Region& parent( void ){ return _parent; };
-    inline const Region& parent( void )const{ return _parent; };
-    inline Region& child( void ){ return _child; };
-    inline const Region& child( void )const{ return _child; };
+    virtual void from_xml( const std::string& filename, World* world );
+    virtual void from_xml( xmlNodePtr root, World* world );
+
+    inline std::string& constraint_type( void ){ return get_prop< std::string >( _string_properties, "constraint_type" ); };
+    inline const std::string& constraint_type( void )const{ return get_prop< std::string >( _string_properties, "constraint_type" ); };
+    inline std::string& payload( void ){ return get_prop< std::string >( _string_properties, "payload" ); };
+    inline const std::string& payload( void )const{ return get_prop< std::string >( _string_properties, "payload" ); };
+    inline std::string& payload_relation( void ){ return get_prop< std::string >( _string_properties, "payload_relation" ); };
+    inline const std::string& payload_relation( void )const{ return get_prop< std::string >( _string_properties, "payload_relation" ); };
+    inline std::string& reference( void ){ return get_prop< std::string >( _string_properties, "reference" ); };
+    inline const std::string& reference( void )const{ return get_prop< std::string >( _string_properties, "reference" ); };
+    inline std::string& reference_relation( void ){ return get_prop< std::string >( _string_properties, "reference_relation" ); };
+    inline const std::string& reference_relation( void )const{ return get_prop< std::string >( _string_properties, "reference_relation" ); };
 
     static std::string class_name( void ){ return "constraint"; };
 
   protected:
-    Region _parent;
-    Region _child;
 
   private:
 

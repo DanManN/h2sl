@@ -36,10 +36,13 @@
 
 #include <iostream>
 #include <vector>
+#include <string>
+#include <map>
 #include <libxml/tree.h>
 
-#include <h2sl/grounding.h>
-#include <h2sl/word.h>
+#include "h2sl/word.h"
+#include "h2sl/world.h"
+#include "h2sl/grounding_set.h"
 
 namespace h2sl {
   typedef enum {
@@ -58,9 +61,10 @@ namespace h2sl {
     NUM_PHRASE_TYPES
   } phrase_type_t;  
 
-  class Phrase : public Grounding {
+  class Phrase {
   public:
-    Phrase( const phrase_type_t& type = PHRASE_UNKNOWN, const std::string& text = "na", const std::vector< Word >& words = std::vector< Word >(), const std::vector< Phrase* >& children = std::vector< Phrase* >(), Grounding* grounding = NULL );
+    Phrase( const phrase_type_t& type = PHRASE_UNKNOWN, const std::string& text = "na", const std::vector< Word >& words = std::vector< Word >(), const std::vector< Phrase* >& children = std::vector< Phrase* >(), Grounding_Set* groundingSet = NULL, const std::map< std::string, std::string >& properties = std::map< std::string, std::string >() );
+    Phrase( const std::string& filename, World* world );
     virtual ~Phrase();
     Phrase( const Phrase& other );
     Phrase& operator=( const Phrase& other );
@@ -69,17 +73,47 @@ namespace h2sl {
     virtual Phrase* dup( void )const;
     virtual Phrase* dup( const bool& empty )const;
 
+    virtual void clear_grounding_sets( void );
+
+    virtual void scrape_groundings( const World * world, std::map< std::string, std::vector< std::string > >& stringTypes, std::map< std::string, std::vector< int > >& intTypes )const;
+    virtual void scrape_groundings( const World * world, std::vector< std::string >& classNames, std::map< std::string, std::vector< std::string > >& stringTypes, std::map< std::string, std::vector< int > >& intTypes )const;
+    virtual void scrape_groundings( const World * world, std::map< std::string, std::vector< std::string > >& classNames, std::map< std::string, std::vector< std::string > >& stringTypes, std::map< std::string, std::vector< int > >& intTypes )const;
+    bool contains_symbol_in_symbol_dictionary( const Symbol_Dictionary& symbolDictionary )const;
+
+    virtual void to_file( const std::string& filename )const;
+
     virtual void to_xml( const std::string& filename )const;
     virtual void to_xml( xmlDocPtr doc, xmlNodePtr root )const;
 
-    virtual void from_xml( const std::string& filename );
-    virtual void from_xml( xmlNodePtr root );
+    virtual void from_xml( const std::string& filename, World* world );
+    virtual void from_xml( xmlNodePtr root, World* world );
 
     bool has_word( const Word& word )const;
     bool has_words( const std::vector< Word >& words )const;
     unsigned int min_word_order( void )const;
-    
+
+    unsigned int num_phrases( void )const;
+    unsigned int num_phrases( const Phrase* phrase )const;
+    unsigned int num_words( void )const;
+    unsigned int num_words( const Phrase* phrase )const;
+
+    double aggregate_property_phrases( const std::string& property )const;
+    double aggregate_property_phrases( const Phrase* phrase, 
+                                       const std::string& property )const;
+
+    double statistic_aggregate_property_phrases( const std::string& property,
+                                                 const std::string& statistic )const;
+
+    double statistic_aggregate_property_phrases( const Phrase* phrase,
+                                                 const std::string& property,
+                                                 const std::string& statistic )const; 
+
+    virtual void to_tikz( const std::string& filename, const std::string& caption = "tbd", const std::string& lavel = "fig:tbd" )const;
+    virtual std::string to_tikz_nodes_gm( const Phrase* phrase, unsigned int& offset )const;
+    virtual std::string to_tikz_edges_gm( const Phrase* phrase, unsigned int& offset )const;   
+ 
     std::string words_to_std_string( void )const;
+    std::string all_words_to_std_string( void )const;
 
     static std::string phrase_type_t_to_std_string( const phrase_type_t& phrase );
     static phrase_type_t phrase_type_t_from_std_string( const std::string& arg );
@@ -92,15 +126,18 @@ namespace h2sl {
     inline const std::vector< Phrase* >& children( void )const{ return _children; };
     inline std::vector< Word >& words( void ){ return _words; };
     inline const std::vector< Word >& words( void )const{ return _words; };
-    inline Grounding*& grounding( void ){ return _grounding; };
-    inline const Grounding* grounding( void )const{ return _grounding; };
+    inline Grounding_Set*& grounding_set( void ){ return _grounding_set; };
+    inline const Grounding_Set* grounding_set( void )const{ return _grounding_set; };
+    inline std::map< std::string, std::string >& properties( void ){ return _properties; };
+    inline const std::map< std::string, std::string >& properties( void )const{ return _properties; };
 
   protected:
     phrase_type_t _type;
     std::string _text;
     std::vector< Word > _words;
     std::vector< Phrase* > _children;
-    Grounding * _grounding;
+    Grounding_Set * _grounding_set;
+    std::map< std::string, std::string > _properties;
 
   private:
 

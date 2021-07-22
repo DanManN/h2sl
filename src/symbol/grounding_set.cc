@@ -31,9 +31,35 @@
  * The implementation of a class used to describe a set of groundings
  */
 
+#include <assert.h>
+
+#include "h2sl/cv.h"
+
+#include "h2sl/rule_object_type.h"
+#include "h2sl/rule_container_type.h"
+#include "h2sl/rule_object_color.h"
+#include "h2sl/rule_spatial_relation.h"
+#include "h2sl/rule_constraint_type.h"
+#include "h2sl/rule_constraint_payload_type.h"
+#include "h2sl/rule_constraint_reference_type.h"
+#include "h2sl/rule_index.h"
+#include "h2sl/rule_number.h"
 #include "h2sl/object.h"
 #include "h2sl/region.h"
 #include "h2sl/constraint.h"
+#include "h2sl/spatial_relation.h"
+#include "h2sl/object_property.h"
+#include "h2sl/object_type.h"
+#include "h2sl/container_type.h"
+#include "h2sl/object_color.h"
+#include "h2sl/index.h"
+#include "h2sl/number.h"
+#include "h2sl/container.h"
+#include "h2sl/abstract_container.h"
+#include "h2sl/region_abstract_container.h"
+#include "h2sl/region_container.h"
+#include "h2sl/spatial_relation.h"
+//#include "h2sl/action.h"
 
 #include "h2sl/grounding_set.h"
 
@@ -47,9 +73,9 @@ Grounding_Set( const vector< Grounding* >& groundings ) : Grounding(),
 }
 
 Grounding_Set::
-Grounding_Set( xmlNodePtr root ) : Grounding(),
+Grounding_Set( xmlNodePtr root, World* world ) : Grounding(),
                                     _groundings() {
-  from_xml( root );
+  from_xml( root, world );
 }
 
 Grounding_Set::
@@ -72,9 +98,43 @@ operator=( const Grounding_Set& other ) {
   clear();
   _groundings.resize( other._groundings.size(), NULL );
   for( unsigned int i = 0; i < other._groundings.size(); i++ ){
-    _groundings[ i ] = other._groundings[ i ]->dup();
+    _groundings[ i ] = other._groundings[ i ];
   }
   return (*this);
+}
+
+bool
+Grounding_Set::
+operator==( const Grounding_Set& other )const{
+  for( unsigned int i = 0; i < _groundings.size(); i++ ){
+    assert( dynamic_cast< Grounding* >( _groundings[ i ] ) != NULL );
+  }
+  for( unsigned int i = 0; i < other.groundings().size(); i++ ){
+    assert( dynamic_cast< Grounding* >( other.groundings()[ i ] ) != NULL );
+  }
+
+  if( _groundings.size() != other.groundings().size() ){
+    return false;
+  }
+
+  for( unsigned int i = 0; i < _groundings.size(); i++ ){
+    bool found_match = false;
+    for( unsigned int j = 0; j < other.groundings().size(); j++ ){
+      if( *static_cast< const Grounding* >( _groundings[ i ] ) == *static_cast< const Grounding* >( other.groundings()[ j ] ) ){
+        found_match = true;
+      }
+    }
+    if( !found_match ){
+      return false;
+    }
+  }
+  return true;
+}
+
+bool
+Grounding_Set::
+operator!=( const Grounding_Set& other )const{
+  return !( *this == other );
 }
 
 Grounding_Set*
@@ -85,15 +145,94 @@ dup( void )const{
 
 void
 Grounding_Set::
-clear( void ){
-  for( unsigned int i = 0; i < _groundings.size(); i++ ){
-    if( _groundings[ i ] != NULL ){
-      delete _groundings[ i ];
-      _groundings[ i ] = NULL;
+scrape_grounding( const World * world,
+                  map< string, vector< string > >& stringTypes,
+                  map< string, vector< int > >& intTypes )const{
+  for( vector< Grounding* >::const_iterator it_grounding = _groundings.begin(); it_grounding != _groundings.end(); it_grounding++ ){
+    if( ( *it_grounding ) != NULL ){
+      (*it_grounding)->scrape_grounding( world, stringTypes, intTypes );
     }
-  } 
+  }
+  return;
+}
+
+void
+Grounding_Set::
+scrape_grounding( const World * world,
+                  vector< string >& classNames, 
+                  map< string, vector< string > >& stringTypes,
+                  map< string, vector< int > >& intTypes )const{
+  for( vector< Grounding* >::const_iterator it_grounding = _groundings.begin(); it_grounding != _groundings.end(); it_grounding++ ){
+    if( ( *it_grounding ) != NULL ){
+      (*it_grounding)->scrape_grounding( world, classNames, stringTypes, intTypes );
+    }
+  }
+  return;
+}
+
+void
+Grounding_Set::
+clear( void ){
   _groundings.clear();
   return;
+}
+
+string
+Grounding_Set::
+evaluate_cv( const Grounding_Set* groundingSet )const{
+  string cv = "false";
+  for( unsigned int i = 0; i < groundingSet->groundings().size(); i++ ){
+    if( dynamic_cast< const Grounding_Set* >( groundingSet->groundings()[ i ] ) ){
+      if( *this == *static_cast< const Grounding_Set* >( groundingSet->groundings()[ i ] ) ){
+        cv = "true";
+      }
+    }
+  }
+  return cv;
+}
+
+string
+Grounding_Set::
+evaluate_cv( const Grounding* grounding )const{
+  return grounding->evaluate_cv( this );
+}
+
+bool
+Grounding_Set::
+contains_symbol_in_symbol_dictionary( const Symbol_Dictionary& symbolDictionary )const{
+  for( vector< Grounding* >::const_iterator it_grounding = _groundings.begin(); it_grounding != _groundings.end(); it_grounding++ ){
+    if( ( *it_grounding ) != NULL ){
+      for( map< string, vector< string > >::const_iterator it_class_names = symbolDictionary.class_names().begin(); it_class_names != symbolDictionary.class_names().end(); it_class_names++ ){
+        for( vector< string >::const_iterator it_class_name = it_class_names->second.begin(); it_class_name != it_class_names->second.end(); it_class_name++ ){
+          if( (*it_grounding)->matches_class_name( *it_class_name ) ){
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+void
+Grounding_Set::
+fill_rules( const World* world, Grounding_Set* groundingSet )const{
+  for( vector< Grounding* >::const_iterator it_grounding = _groundings.begin(); it_grounding != _groundings.end(); it_grounding++ ){
+    if( ( *it_grounding ) != NULL ){
+      ( *it_grounding )->fill_rules( world, groundingSet );
+    }
+  }
+  return;
+}
+
+bool
+Grounding_Set::
+equals( const Grounding& other )const{
+  if( dynamic_cast< const Grounding_Set* >( &other ) != NULL ){
+    return ( *this == *static_cast< const Grounding_Set* >( &other ) );
+  } else {
+    return false;
+  }
 }
 
 void
@@ -122,9 +261,24 @@ to_xml( xmlDocPtr doc,
   return;
 }
 
+string 
+Grounding_Set::
+to_json_string( void )const {
+
+return "";
+}
+
+
+string
+Grounding_Set::
+to_latex( void )const{
+  stringstream tmp;
+  return tmp.str();
+}
+
 void
 Grounding_Set::
-from_xml( const string& filename ){
+from_xml( const string& filename, World* world ){
   xmlDoc * doc = NULL;
   xmlNodePtr root = NULL;
   doc = xmlReadFile( filename.c_str(), NULL, 0 );
@@ -135,7 +289,7 @@ from_xml( const string& filename ){
       for( l1 = root->children; l1; l1 = l1->next ){
         if( l1->type == XML_ELEMENT_NODE ){
           if( xmlStrcmp( l1->name, ( const xmlChar* )( "grounding_set" ) ) == 0 ){
-            from_xml( l1 );
+            from_xml( l1, world );
           }
         }
       }
@@ -147,19 +301,62 @@ from_xml( const string& filename ){
 
 void
 Grounding_Set::
-from_xml( xmlNodePtr root ){
+from_xml( xmlNodePtr root, World* world ){
   clear();
   if( root->type == XML_ELEMENT_NODE ){
     xmlNodePtr l1 = NULL;
     for( l1 = root->children; l1; l1 = l1->next ){
       if( l1->type == XML_ELEMENT_NODE ){
-        if( xmlStrcmp( l1->name, ( const xmlChar* )( "object" ) ) == 0 ){
-          _groundings.push_back( new Object( l1 ) );
+        if( xmlStrcmp( l1->name, ( const xmlChar* )( "rule_object_type" ) ) == 0 ){
+          _groundings.push_back( new Rule_Object_Type( l1, world ) );
+        } else if( xmlStrcmp( l1->name, ( const xmlChar* )( "rule_container_type" ) ) == 0 ){
+          _groundings.push_back( new Rule_Container_Type( l1, world ) );
+        } else if( xmlStrcmp( l1->name, ( const xmlChar* )( "rule_object_color" ) ) == 0 ){
+          _groundings.push_back( new Rule_Object_Color( l1, world ) );
+        } else if( xmlStrcmp( l1->name, ( const xmlChar* )( "rule_spatial_relation" ) ) == 0 ){
+          _groundings.push_back( new Rule_Spatial_Relation( l1, world ) );
+        } else if( xmlStrcmp( l1->name, ( const xmlChar* )( "rule_constraint_type" ) ) == 0 ){
+          _groundings.push_back( new Rule_Constraint_Type( l1, world ) );
+        } else if( xmlStrcmp( l1->name, ( const xmlChar* )( "rule_constraint_payload_type" ) ) == 0 ){
+          _groundings.push_back( new Rule_Constraint_Payload_Type( l1, world ) );
+        } else if( xmlStrcmp( l1->name, ( const xmlChar* )( "rule_constraint_reference_type" ) ) == 0 ){
+          _groundings.push_back( new Rule_Constraint_Reference_Type( l1, world ) );
+        } else if( xmlStrcmp( l1->name, ( const xmlChar* )( "rule_index" ) ) == 0 ){
+          _groundings.push_back( new Rule_Index( l1, world ) );
+        } else if( xmlStrcmp( l1->name, ( const xmlChar* )( "rule_number" ) ) == 0 ){
+          _groundings.push_back( new Rule_Number( l1, world ) );
+        } else if( xmlStrcmp( l1->name, ( const xmlChar* )( "object" ) ) == 0 ){
+          _groundings.push_back( new Object( l1, world ) );
         } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "region" ) ) == 0 ){
-          _groundings.push_back( new Region( l1 ) );
+          _groundings.push_back( new Region( l1, world ) );
         } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "constraint" ) ) == 0 ){
-          _groundings.push_back( new Constraint( l1 ) );
-        } 
+          _groundings.push_back( new Constraint( l1, world ) );
+        } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "container" ) ) == 0 ){
+          _groundings.push_back( new Container( l1, world ) );
+        } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "container_type" ) ) == 0 ){
+          _groundings.push_back( new Container_Type( l1, world ) );
+        } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "region_container" ) ) == 0 ){
+          _groundings.push_back( new Region_Container( l1, world ) );
+        } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "index" ) ) == 0 ){
+          _groundings.push_back( new Index( l1, world ) );
+        } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "number" ) ) == 0 ){
+          _groundings.push_back( new Number( l1, world ) );
+        } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "object_color" ) ) == 0 ){
+          _groundings.push_back( new Object_Color( l1, world ) );
+        } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "object_type" ) ) == 0 ){
+          _groundings.push_back( new Object_Type( l1, world ) );
+        } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "spatial_relation" ) ) == 0 ){
+          _groundings.push_back( new Spatial_Relation( l1, world ) );
+        } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "object_property" ) ) == 0 ){
+          _groundings.push_back( new Object_Property( l1, world ) );
+        } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "abstract_container" ) ) == 0 ){
+          _groundings.push_back( new Abstract_Container( l1, world ) );
+        } else if ( xmlStrcmp( l1->name, ( const xmlChar* )( "region_abstract_container" ) ) == 0 ){
+          _groundings.push_back( new Region_Abstract_Container( l1, world ) );
+        } else {
+          cout << "could not identify symbol \"" << l1->name << "\" in Grounding_Set::from_xml" << endl;
+          assert( false );
+        }
       }
     }
   }
@@ -170,6 +367,7 @@ namespace h2sl {
   ostream&
   operator<<( ostream& out,
               const Grounding_Set& other ) {
+    out << "[" << other.groundings().size() << "]:{";
     for( unsigned int i = 0; i < other.groundings().size(); i++ ){
       if( other.groundings()[ i ] != NULL ){
         out << *other.groundings()[ i ];
@@ -178,6 +376,7 @@ namespace h2sl {
         out << ",";
       } 
     }
+    out << "}";
     return out;
   }
 }

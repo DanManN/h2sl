@@ -56,7 +56,7 @@ operator=( const Feature_Object_Matches_Child& other ){
 template< class T, class O >
 bool
 Feature_Object_Matches_Child< T, O >::
-value( const unsigned int& cv,
+value( const std::string& cv,
         const Grounding* grounding,
         const std::vector< std::pair< const Phrase*, std::vector< Grounding* > > >& children,
         const Phrase* phrase,
@@ -67,7 +67,7 @@ value( const unsigned int& cv,
 template< class T, class O >
 bool
 Feature_Object_Matches_Child< T, O >::
-value( const unsigned int& cv,
+value( const std::string& cv,
         const Grounding* grounding,
         const std::vector< std::pair< const Phrase*, std::vector< Grounding* > > >& children,
         const Phrase* phrase,
@@ -79,8 +79,12 @@ value( const unsigned int& cv,
       for( unsigned int j = 0; j < children[ i ].second.size(); j++ ){
         const O * child = dynamic_cast< const O* >( children[ i ].second[ j ] );
         if( child != NULL ){
-          if( symbol->object() == *child ){
-            return !_invert;
+          typename std::map< std::string, O* >::const_iterator it_object = world->objects().find( symbol->object_id() );
+          //assert( it_object != world->objects().end() );
+          if( it_object != world->objects().end() ){
+            if( *(it_object->second) == *child ){
+              return !_invert;
+            }
           }
         }
       }
@@ -177,6 +181,6 @@ template< class T, class O >
 std::ostream&
 operator<<( std::ostream& out,
             const Feature_Object_Matches_Child< T, O >& other ){
-  out << "Feature_Object_Matches_Child:( class_name:\"" << T::class_name() << "\" invert:\"" << other.invert() << "\")";
+  out << "Feature_Object_Matches_Child:( invert:\"" << other.invert() << "\")";
   return out;
 }

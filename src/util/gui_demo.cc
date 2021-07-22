@@ -70,13 +70,18 @@ main( int argc,
     llm->from_xml( args.llm_arg );
   }
 
+  Symbol_Dictionary * symbol_dictionary = new Symbol_Dictionary( args.symbol_dictionary_groundings_arg );
+
+  Search_Space * search_space = new Search_Space();
+  search_space->fill_groundings( *symbol_dictionary, world );
+
   DCG * dcg = new DCG();
 
-  GUI gui( grammar, parser, world, context, llm, dcg, args.beam_width_arg );
+  GUI gui( grammar, parser, symbol_dictionary, search_space, world, context, llm, dcg, args.beam_width_arg );
 
   if( args.phrase_given ){
     Phrase * phrase = new Phrase();
-    phrase->from_xml( args.phrase_arg );
+    phrase->from_xml( args.phrase_arg, world );
   
     if( phrase != NULL ){
       delete phrase;
